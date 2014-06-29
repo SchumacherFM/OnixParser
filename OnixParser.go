@@ -5,18 +5,29 @@ package main
 
 import (
 	"bufio"
-	"encoding/xml"
+	//	"encoding/xml"
 	"flag"
 	"fmt"
 	"net/url"
 	"os"
 	"regexp"
 	"strings"
+	"time"
+	"database/sql"
+	_ "github.com/go-sql-driver/mysql"
 )
 
-var inputFile = flag.String("infile", "enwiki-latest-pages-articles.xml", "Input file path")
-var indexFile = flag.String("indexfile", "out/article_list.txt", "article list output file")
-
+var (
+	timeStart   = time.Now()
+	inputFile   = flag.String("infile", "demo-availability.xml", "Input file path")
+	dbHost      = flag.String("host", "127.0.0.1", "MySQL host name")
+	dbDb        = flag.String("db", "test", "MySQL db name")
+	dbUser      = flag.String("user", "test", "MySQL user name")
+	dbPass      = flag.String("pass", "test", "MySQL password")
+	tablePrefix = flag.String("tablePrefix", "gonix_", "Table name prefix")
+	tableColumns = make([][]string,50)
+	dbCon *sql.DB
+)
 var filter, _ = regexp.Compile("^file:.*|^talk:.*|^special:.*|^wikipedia:.*|^wiktionary:.*|^user:.*|^user_talk:.*")
 
 // Here is an example article from the Wikipedia XML dump
@@ -66,8 +77,42 @@ func WritePage(title string, text string) {
 	}
 }
 
+func initDatabase() {
+	dbCon, dbConErr := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s", *dbUser, *dbPass, *dbHost, *dbDb))
+	if dbConErr != nil {
+		panic(dbConErr.Error()) // Just for example purpose. You should use proper error handling instead of panic
+	}
+	defer dbCon.Close()
+
+	// Open doesn't open a connection. Validate DSN data:
+	err := dbCon.Ping()
+	if err != nil {
+		panic(err.Error()) // proper error handling instead of panic in your app
+	}
+
+	// delete already created tables
+	// @todo go on here
+	rows, err := dbCon.Query("SHOW TABLES FROM ?", dbDb)
+	if err != nil { /* error handling */}
+	partages := make([]*Partage, 0, 10)
+	var ida, idb uint
+	for rows.Next() {
+		err = rows.Scan(&ida, &idb)
+		if err != nil { /* error handling */}
+		partages = append(partages, &Partage{ida, idb})
+	}
+}
+
+func printDuration() {
+	timeEnd := time.Now()
+	duration := timeEnd.Sub(timeStart)
+	fmt.Printf("XML Parser took %dh %dm %fs to run.\n", int(duration.Hours()), int(duration.Minutes()), duration.Seconds())
+	fmt.Printf("XML Parser took %v to run.\n", duration)
+}
+
 func main() {
 	flag.Parse()
+	initDatabase()
 
 	xmlFile, err := os.Open(*inputFile)
 	if err != nil {
@@ -76,39 +121,40 @@ func main() {
 	}
 	defer xmlFile.Close()
 
-	decoder := xml.NewDecoder(xmlFile)
+	//	decoder := xml.NewDecoder(xmlFile)
 	total := 0
-	var inElement string
-	for {
-		// Read tokens from the XML document in a stream.
-		t, _ := decoder.Token()
-		if t == nil {
-			break
-		}
-		// Inspect the type of the token just read.
-		switch se := t.(type) {
-		case xml.StartElement:
-			// If we just read a StartElement token
-			inElement = se.Name.Local
-			// ...and its name is "page"
-			if inElement == "page" {
-				var p Page
-				// decode a whole chunk of following XML into the
-				// variable p which is a Page (se above)
-				decoder.DecodeElement(&p, &se)
-
-				// Do some stuff with the page.
-				p.Title = CanonicalizeTitle(p.Title)
-				m := filter.MatchString(p.Title)
-				if !m && p.Redir.Title == "" {
-					WritePage(p.Title, p.Text)
-					total++
-				}
-			}
-		default:
-		}
-
-	}
+	//	var inElement string
+	//	for {
+	//		// Read tokens from the XML document in a stream.
+	//		t, _ := decoder.Token()
+	//		if t == nil {
+	//			break
+	//		}
+	//		// Inspect the type of the token just read.
+	//		switch se := t.(type) {
+	//		case xml.StartElement:
+	//			// If we just read a StartElement token
+	//			inElement = se.Name.Local
+	//			// ...and its name is "page"
+	//			if inElement == "page" {
+	//				var p Page
+	//				// decode a whole chunk of following XML into the
+	//				// variable p which is a Page (se above)
+	//				decoder.DecodeElement(&p, &se)
+	//
+	//				// Do some stuff with the page.
+	//				p.Title = CanonicalizeTitle(p.Title)
+	//				m := filter.MatchString(p.Title)
+	//				if !m && p.Redir.Title == "" {
+	//					WritePage(p.Title, p.Text)
+	//					total++
+	//				}
+	//			}
+	//		default:
+	//		}
+	//
+	//	}
 
 	fmt.Printf("Total articles: %d \n", total)
+	printDuration()
 }
