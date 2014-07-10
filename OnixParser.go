@@ -8,6 +8,7 @@ import (
 	//	"encoding/xml"
 	"flag"
 	"fmt"
+	"log"
 	"net/url"
 	"os"
 	"regexp"
@@ -18,15 +19,16 @@ import (
 )
 
 var (
-	timeStart   = time.Now()
-	inputFile   = flag.String("infile", "demo-availability.xml", "Input file path")
-	dbHost      = flag.String("host", "127.0.0.1", "MySQL host name")
-	dbDb        = flag.String("db", "test", "MySQL db name")
-	dbUser      = flag.String("user", "test", "MySQL user name")
-	dbPass      = flag.String("pass", "test", "MySQL password")
-	tablePrefix = flag.String("tablePrefix", "gonix_", "Table name prefix")
-	tableColumns = make([][]string,50)
+	timeStart    = time.Now()
+	inputFile    = flag.String("infile", "demo-availability.xml", "Input file path")
+	dbHost       = flag.String("host", "127.0.0.1", "MySQL host name")
+	dbDb         = flag.String("db", "test", "MySQL db name")
+	dbUser       = flag.String("user", "test", "MySQL user name")
+	dbPass       = flag.String("pass", "test", "MySQL password")
+	tablePrefix  = flag.String("tablePrefix", "gonix_", "Table name prefix")
+	tableColumns = make([][]string, 50)
 	dbCon *sql.DB
+	tablesInDb   = make(map[string]string)
 )
 var filter, _ = regexp.Compile("^file:.*|^talk:.*|^special:.*|^wikipedia:.*|^wiktionary:.*|^user:.*|^user_talk:.*")
 
@@ -49,6 +51,12 @@ var filter, _ = regexp.Compile("^file:.*|^talk:.*|^special:.*|^wikipedia:.*|^wik
 //
 // Note how the tags on the fields of Page and Redirect below
 // describe the XML schema structure.
+
+func handleErr(theErr error) {
+	if nil != theErr {
+		panic(theErr.Error())
+	}
+}
 
 type Redirect struct {
 	Title string `xml:"title,attr"`
@@ -78,7 +86,8 @@ func WritePage(title string, text string) {
 }
 
 func initDatabase() {
-	dbCon, dbConErr := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s", *dbUser, *dbPass, *dbHost, *dbDb))
+	var dbConErr error
+	dbCon, dbConErr = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s", *dbUser, *dbPass, *dbHost, *dbDb))
 	if dbConErr != nil {
 		panic(dbConErr.Error()) // Just for example purpose. You should use proper error handling instead of panic
 	}
@@ -91,16 +100,25 @@ func initDatabase() {
 	}
 
 	// delete already created tables
-	// @todo go on here
-	rows, err := dbCon.Query("SHOW TABLES FROM ?", dbDb)
-	if err != nil { /* error handling */}
-	partages := make([]*Partage, 0, 10)
-	var ida, idb uint
+	rows, err := dbCon.Query("SHOW TABLES FROM " + *dbDb)
+	handleErr(err)
+
+	defer rows.Close()
 	for rows.Next() {
-		err = rows.Scan(&ida, &idb)
+		var tableName string
+		err = rows.Scan(&tableName)
 		if err != nil { /* error handling */}
-		partages = append(partages, &Partage{ida, idb})
+		tablesInDb[tableName] = tableName
 	}
+
+	if len(tablesInDb) > 0 {
+		for table := range tablesInDb {
+			_, err = dbCon.Query("DROP TABLE " + table)
+			handleErr(err)
+		}
+		log.Printf("Dropped %d existing tables", len(tablesInDb))
+	}
+
 }
 
 func printDuration() {
