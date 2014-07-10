@@ -56,19 +56,13 @@ try {
     die($e->getMessage() . PHP_EOL);
 }
 
-function ti()
-{ // function to calculate time used
-    $t = microtime();
-    $t = explode(' ', $t);
-    return $t[1] + $t[0];
-}
-
-$argvStart = (int)(isset($argv[1]) ? $argv[1] : 0);
-$argvSt    = (float)(isset($argv[2]) ? $argv[2] : 0);
-$argvTotal = (float)(isset($argv[3]) ? $argv[3] : 0);
+$argvStart   = (int)(isset($argv[1]) ? $argv[1] : 0);
+$argvSt      = (int)(isset($argv[2]) ? $argv[2] : 0);
+$argvTotal   = (float)(isset($argv[3]) ? $argv[3] : 0);
+$argvCurTime = (int)(isset($argv[4]) ? $argv[4] : 0);
 
 $start = max($argvStart, 0); // set startpoint of xml file (must be an integer greater then 0)
-$st    = $start === 0 ? ti() : $argvSt; // remember when we started with the first chunk of data to show total processing time
+$st    = $start === 0 ? time() : $argvSt; // remember when we started with the first chunk of data to show total processing time
 $total = max($argvTotal, 0); // remember the total number of records we processed from the start of the first chunk
 $size  = filesize($file);
 
@@ -216,11 +210,13 @@ if ($start < $size) { // are we not already done?
     }
     if (($end + $start - ($deleted + 1)) < $size) {
         // continue with the next chunk of xml
-        $command = 'nohup php ' . $_SERVER['PHP_SELF'] . " " . ($end + $start - ($deleted + 1)) . " " . $st . " " . $total . ' >> onixLog.txt &';
+        $currentTime = time();
+        $command     = 'nohup php ' . $_SERVER['PHP_SELF'] . ' ' . ($end + $start - ($deleted + 1)) . ' ' . $st . ' ' . $total . ' ' . $currentTime
+            . ' >> onixLog.txt &';
         echo "Starting: $command\n\n";
         exec($command);
     } else { // finished and show total number of inserted records and processing time
-        echo date("Y-m-d H:i:s") . " records: " . $total . " time: " . number_format((ti() - $st), 2, '.', ',') . " seconds";
+        echo date("Y-m-d H:i:s") . " records: " . $total . " time: " . number_format((time() - $st), 2, '.', ',') . " seconds";
     }
     $mysqli->close();
 }
