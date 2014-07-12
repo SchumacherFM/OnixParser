@@ -30,7 +30,7 @@ var (
 	dbCon *sql.DB
 	tablesInDb   = make(map[string]string)
 )
-var filter, _ = regexp.Compile("^file:.*|^talk:.*|^special:.*|^wikipedia:.*|^wiktionary:.*|^user:.*|^user_talk:.*")
+// var filter, _ = regexp.Compile("^file:.*|^talk:.*|^special:.*|^wikipedia:.*|^wiktionary:.*|^user:.*|^user_talk:.*")
 
 // Here is an example article from the Wikipedia XML dump
 //
@@ -85,26 +85,36 @@ func WritePage(title string, text string) {
 	}
 }
 
-func initDatabase() {
+func quoteInto(data string) string {
+	return "`" + strings.Replace(data, "`", "", -1) + "`"
+}
+
+func getConnection() *sql.DB {
 	var dbConErr error
-	dbCon, dbConErr = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s", *dbUser, *dbPass, *dbHost, *dbDb))
-	if dbConErr != nil {
-		panic(dbConErr.Error()) // Just for example purpose. You should use proper error handling instead of panic
-	}
-	defer dbCon.Close()
 
+	if nil == dbCon {
+		dbCon, dbConErr = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s",
+				url.QueryEscape(*dbUser),
+				url.QueryEscape(*dbPass),
+				*dbHost,
+				*dbDb))
+		handleErr(dbConErr)
+		// why is defer close not working here?
+	}
+	return dbCon
+}
+
+func initDatabase() {
 	// Open doesn't open a connection. Validate DSN data:
-	err := dbCon.Ping()
-	if err != nil {
-		panic(err.Error()) // proper error handling instead of panic in your app
-	}
-
-	// delete already created tables
-	rows, err := dbCon.Query("SHOW TABLES FROM " + *dbDb)
+	err := getConnection().Ping()
 	handleErr(err)
 
+	// delete already created tables
+	// escape dbdb due to SQL injection
+	rows, err := getConnection().Query("SHOW TABLES FROM " + quoteInto(*dbDb))
+	handleErr(err)
 	defer rows.Close()
-	for rows.Next() {
+	for rows.Next() { // just for learning purpose otherwise we can directly drop tables here
 		var tableName string
 		err = rows.Scan(&tableName)
 		if err != nil { /* error handling */}
@@ -113,12 +123,11 @@ func initDatabase() {
 
 	if len(tablesInDb) > 0 {
 		for table := range tablesInDb {
-			_, err = dbCon.Query("DROP TABLE " + table)
+			_, err := getConnection().Query("DROP TABLE " + quoteInto(table))
 			handleErr(err)
 		}
 		log.Printf("Dropped %d existing tables", len(tablesInDb))
 	}
-
 }
 
 func printDuration() {
@@ -174,5 +183,6 @@ func main() {
 	//	}
 
 	fmt.Printf("Total articles: %d \n", total)
+	getConnection().Close()
 	printDuration()
 }
