@@ -11,7 +11,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"net/url"
-	"strings"
+	"./sqlCreator"
 	"time"
 )
 
@@ -23,7 +23,6 @@ var (
 	dbUser       = flag.String("user", "test", "MySQL user name")
 	dbPass       = flag.String("pass", "test", "MySQL password")
 	tablePrefix  = flag.String("tablePrefix", "onix_", "Table name prefix")
-	tableColumns = make([][]string, 50)
 	dbCon        *sql.DB
 	tablesInDb   = make(map[string]string)
 )
@@ -32,10 +31,6 @@ func handleErr(theErr error) {
 	if nil != theErr {
 		panic(theErr.Error())
 	}
-}
-
-func quoteInto(data string) string {
-	return "`" + strings.Replace(data, "`", "", -1) + "`"
 }
 
 func getConnection() *sql.DB {
@@ -60,8 +55,8 @@ func initDatabase() {
 
 	// delete already created tables
 	// escape dbdb due to SQL injection
-	columnName := quoteInto("Tables_in_" + *dbDb)
-	showQuery := "SHOW TABLES FROM " + quoteInto(*dbDb) + " WHERE " + columnName + " LIKE '" + url.QueryEscape(*tablePrefix) + "%'"
+	columnName := sqlCreator.QuoteInto("Tables_in_" + *dbDb)
+	showQuery := "SHOW TABLES FROM " + sqlCreator.QuoteInto(*dbDb) + " WHERE " + columnName + " LIKE '" + url.QueryEscape(*tablePrefix) + "%'"
 	rows, err := getConnection().Query(showQuery)
 	handleErr(err)
 	defer rows.Close()
@@ -75,7 +70,7 @@ func initDatabase() {
 
 	if len(tablesInDb) > 0 {
 		for table := range tablesInDb {
-			_, err := getConnection().Query("DROP TABLE " + quoteInto(table))
+			_, err := getConnection().Query("DROP TABLE " + sqlCreator.QuoteInto(table))
 			handleErr(err)
 		}
 		log.Printf("Dropped %d existing tables", len(tablesInDb))
@@ -94,6 +89,7 @@ func main() {
 	initDatabase()
 
 	onixml.SetConnection(getConnection())
+	onixml.SetTablePrefix(*tablePrefix)
 	total := onixml.OnixmlDecode(*inputFile)
 
 	fmt.Printf("Total articles: %d \n", total)

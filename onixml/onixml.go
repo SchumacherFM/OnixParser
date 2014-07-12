@@ -6,19 +6,30 @@ package onixml
 import (
 	"encoding/xml"
 	"fmt"
-	//"log"
 	"database/sql"
 	"net/url"
 	"os"
 	"strings"
+	"../sqlCreator"
 )
+
+type tableColumn struct {
+	Table, Column string
+}
 
 var (
 	dbCon *sql.DB
+	tablePrefix string
+	preparedInsertStmt = make(map[string]bool)
+	insertStmt *sql.Stmt
+	insertStmtErr error
 )
 
 func SetConnection(aCon *sql.DB) {
 	dbCon = aCon
+}
+func SetTablePrefix(prefix string) {
+	tablePrefix = prefix
 }
 
 // Here is an example article from the Wikipedia XML dump
@@ -49,7 +60,7 @@ func handleErr(theErr error) {
 
 type ProductIdentifier struct {
 	ProductIDType int   `xml:"ProductIDType"`
-	IDValue       int64 `xml:"IDValue"`
+	IDValue       string `xml:"IDValue"`
 }
 type Title struct {
 	TitleType int    `xml:"TitleType"`
@@ -109,7 +120,7 @@ type MarketRepresentation struct {
 }
 
 type Product struct {
-	RecordReference   int64 `xml:"RecordReference"`
+	RecordReference   string `xml:"RecordReference"`
 	NotificationType  int `xml:"NotificationType"`
 	ProductIdentifier []ProductIdentifier
 	ProductForm       string `xml:"ProductForm"`
@@ -140,6 +151,7 @@ func CanonicalizeTitle(title string) string {
 }
 
 func OnixmlDecode(inputFile string) int {
+	sqlCreator.SetTablePrefix(tablePrefix)
 	total := 0
 	xmlFile, err := os.Open(inputFile)
 	if err != nil {
@@ -153,10 +165,12 @@ func OnixmlDecode(inputFile string) int {
 	var inElement string
 	for {
 		// Read tokens from the XML document in a stream.
-		t, _ := decoder.Token()
+		t, dtErr := decoder.Token()
 		if t == nil {
 			break
 		}
+		handleErr(dtErr)
+
 		// Inspect the type of the token just read.
 		switch se := t.(type) { // wtf? I don't understand this magic
 		case xml.StartElement:
@@ -166,26 +180,54 @@ func OnixmlDecode(inputFile string) int {
 			if inElement == "Product" {
 				var prod Product
 				// decode a whole chunk of following XML into the
-				// variable p which is a Page (se above)
-
-				decoder.DecodeElement(&prod, &se)
-				//fmt.Printf("%v\n", prod)
-				for pidI, pidE := range prod.ProductIdentifier {
-					fmt.Printf("%d: %d => %d\n", prod.RecordReference, pidI, pidE)
-				}
-
-
-				// Do some stuff with the page.
-				//				p.Title = CanonicalizeTitle(p.Title)
-				//					m := filter.MatchString(p.Title)
-				//					if !m && p.Redir.Title == "" {
-				//						WritePage(p.Title, p.Text)
-				//						total++
-				//					}
+				// variable prod which is a Product (se above)
+				decErr := decoder.DecodeElement(&prod, &se)
+				handleErr(decErr)
+				xmlElementProduct(&prod)
+				total++
 			}
 		default:
 		}
-
 	}
 	return total
+}
+
+func xmlElementProduct(prod *Product) {
+
+	//	for pidI, pidE := range prod.ProductIdentifier {
+	//		fmt.Printf("%d: %d => %d\n", prod.RecordReference, pidI, pidE)
+	//	}
+	//fmt.Printf("FUNC: %+v", prod)
+	createTable := sqlCreator.GetCreateTableByStruct(prod)
+	if "" != createTable {
+		_, err := dbCon.Exec(createTable) // instead of .Query because we dont care for result. Exec closes resource
+		handleErr(err)
+		//fmt.Println(createTable, "\n")
+	}
+
+	_, isSet := preparedInsertStmt["Product"]
+	if false == isSet {
+		insertTable := sqlCreator.GetInsertTableByStruct(prod)
+		//fmt.Println(insertTable)
+		preparedInsertStmt["Product"] = true
+		insertStmt, insertStmtErr = dbCon.Prepare(insertTable)
+		handleErr(insertStmtErr)
+	}
+
+	_, stmtErr := insertStmt.Exec(
+		// avoiding reflection
+		prod.RecordReference,
+		prod.RecordReference,
+		prod.NotificationType,
+		prod.ProductForm,
+		prod.ProductFormDetail,
+		prod.EditionNumber,
+		prod.NumberOfPages,
+		prod.BICMainSubject,
+		prod.AudienceCode,
+		prod.PublishingStatus,
+		prod.PublicationDate,
+		prod.YearFirstPublished)
+	handleErr(stmtErr)
+
 }
