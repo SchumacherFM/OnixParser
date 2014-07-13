@@ -65,7 +65,7 @@ type Extent struct {
 }
 
 type OtherText struct {
-	TextTypeCode int    `xml:"OtherText>TextTypeCode",sql"int(10) NOT NULL DEFAULT 0"`
+	TextTypeCode int    `xml:"OtherText>TextTypeCode",sql"int(10) NOT NULL"`
 	Text         string   `xml:"OtherText>Text",sql"text NULL"`
 }
 
@@ -87,6 +87,12 @@ type Measure struct {
 	MeasureTypeCode int    `xml:"Measure>MeasureTypeCode"`
 	Measurement     int    `xml:"Measure>Measurement"`
 	MeasureUnitCode string `xml:"Measure>MeasureUnitCode"`
+}
+
+type RelatedProduct struct {
+	RelationCode  int    `xml:"RelatedProduct>RelationCode",sql:"int(10) NOT NULL"`
+	ProductIDType int    `xml:"RelatedProduct>ProductIdentifier>ProductIDType",sql:"int(10) NOT NULL"`
+	IDValue       string    `xml:"RelatedProduct>ProductIdentifier>IDValue",sql:"bigint(15) NOT NULL"`
 }
 
 type SupplyDetail struct {
@@ -132,6 +138,7 @@ type Product struct {
 	PublicationDate    string `xml:"PublicationDate"`
 	YearFirstPublished string `xml:"YearFirstPublished"`
 	Measure
+	RelatedProduct
 	SupplyDetail
 	MarketRepresentation
 }
@@ -209,6 +216,9 @@ func OnixmlDecode(inputFile string) int {
 				}
 				if prod.Measure.MeasureTypeCode > 0 {
 					xmlElementMeasure(prod.RecordReference, &prod.Measure)
+				}
+				if prod.RelatedProduct.ProductIDType > 0 {
+					xmlElementRelatedProduct(prod.RecordReference, &prod.RelatedProduct)
 				}
 				if "" != prod.SupplyDetail.SupplierName {
 					xmlElementSupplyDetail(prod.RecordReference, &prod.SupplyDetail)
@@ -378,6 +388,18 @@ func xmlElementMeasure(id string, m *Measure) {
 		m.MeasureUnitCode)
 	handleErr(stmtErr)
 }
+
+func xmlElementRelatedProduct(id string, r *RelatedProduct) {
+	createTable(r)
+	insertStmt := getInsertStmt(r)
+	_, stmtErr := insertStmt.Exec(
+		id,
+		r.RelationCode,
+		r.ProductIDType,
+		r.IDValue)
+	handleErr(stmtErr)
+}
+
 
 func xmlElementSupplyDetail(id string, s *SupplyDetail) {
 	createTable(s)
