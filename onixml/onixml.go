@@ -56,10 +56,10 @@ type Website struct {
 }
 
 type Contributor struct {
-	SequenceNumber     int    `xml:"Contributor>SequenceNumber"`
-	ContributorRole    string `xml:"Contributor>ContributorRole"`
-	PersonNameInverted string `xml:"Contributor>PersonNameInverted"`
-	KeyNames           string `xml:"Contributor>KeyNames"`
+	SequenceNumber     int    `xml:"SequenceNumber"`
+	ContributorRole    string `xml:"ContributorRole"`
+	PersonNameInverted string `xml:"PersonNameInverted"`
+	KeyNames           string `xml:"KeyNames"`
 }
 
 type Extent struct {
@@ -138,7 +138,7 @@ type Product struct {
 	Series
 	Title
 	Website
-	Contributor
+	Contributor        []Contributor
 	Extent
 	EditionNumber  string    `xml:"EditionNumber",sql:"varchar(255) NULL"`
 	NumberOfPages  string    `xml:"NumberOfPages",sql:"int(10) NOT NULL DEFAULT 0"`
@@ -209,14 +209,18 @@ func OnixmlDecode(inputFile string) int {
 				if prod.Title.TitleType > 0 {
 					xmlElementTitle(prod.RecordReference, &prod.Title)
 				}
-				if "" != prod.Series.TitleOfSeries || ""!=prod.Series.NumberWithinSeries  {
+				if "" != prod.Series.TitleOfSeries || "" != prod.Series.NumberWithinSeries {
 					xmlElementSeries(prod.RecordReference, &prod.Series)
 				}
 				if "" != prod.Website.WebsiteLink {
 					xmlElementWebsite(prod.RecordReference, &prod.Website)
 				}
-				if prod.Contributor.SequenceNumber > 0 {
-					xmlElementContributor(prod.RecordReference, &prod.Contributor)
+				if len(prod.Contributor) > 0 {
+					for _, prodContributor := range prod.Contributor {
+						if prodContributor.SequenceNumber > 0 {
+							xmlElementContributor(prod.RecordReference, &prodContributor)
+						}
+					}
 				}
 				if prod.Extent.ExtentType > 0 {
 					xmlElementExtent(prod.RecordReference, &prod.Extent)
@@ -292,6 +296,7 @@ func xmlElementProduct(prod *Product) {
 	insertStmt := getInsertStmt(prod)
 	// _, stmtErr := insertStmt.Exec.Call(prod) => that would be nice ... but how?
 	// static typed language and that would cost performance
+	/* sometimes number can be 1,234 */
 	_, stmtErr := insertStmt.Exec(
 		// avoiding reflection
 		prod.RecordReference,
@@ -300,7 +305,7 @@ func xmlElementProduct(prod *Product) {
 		prod.ProductForm,
 		prod.ProductFormDetail,
 		prod.EditionNumber,
-		strings.Replace(prod.NumberOfPages, ",", "", -1), // sometimes number can be 1,234
+		strings.Replace(prod.NumberOfPages, ",", "", -1),
 		prod.BICMainSubject,
 		prod.AudienceCode,
 		prod.PublishingStatus,
