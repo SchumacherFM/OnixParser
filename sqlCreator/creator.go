@@ -74,6 +74,7 @@ func getSqlConfigFromStruct(val reflect.Value){
 	fmt.Printf("%+v\n\n",tinfo)
 }
 
+// @todo refactor and use reflext.Value instead of crap interface
 func GetCreateTableByStruct(anyStruct interface{}) (string) {
 	s := reflect.ValueOf(anyStruct).Elem()
 	typeOfAnyStruct := s.Type()
