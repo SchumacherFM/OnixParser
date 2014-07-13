@@ -85,7 +85,11 @@ type Publisher struct {
 
 type SalesRights struct {
 	SalesRightsType int    `xml:"SalesRights>SalesRightsType",sql:"int(10) NOT NULL"`
-	RightsCountry  string `xml:"SalesRights>RightsCountry",sql:"varchar(2) NULL"`
+	RightsCountry   string `xml:"SalesRights>RightsCountry",sql:"varchar(2) NULL"`
+}
+
+type SalesRestriction struct {
+	SalesRestrictionType int    `xml:"SalesRestriction>SalesRestrictionType",sql:"int(10) NOT NULL"`
 }
 
 type Measure struct {
@@ -140,6 +144,7 @@ type Product struct {
 	Imprint
 	Publisher
 	SalesRights
+	SalesRestriction
 	PublishingStatus   int    `xml:"PublishingStatus"`
 	PublicationDate    string `xml:"PublicationDate"`
 	YearFirstPublished string `xml:"YearFirstPublished"`
@@ -222,6 +227,9 @@ func OnixmlDecode(inputFile string) int {
 				}
 				if prod.SalesRights.SalesRightsType > 0 {
 					xmlElementSalesRights(prod.RecordReference, &prod.SalesRights)
+				}
+				if prod.SalesRestriction.SalesRestrictionType > 0 {
+					xmlElementSalesRestriction(prod.RecordReference, &prod.SalesRestriction)
 				}
 				if prod.Measure.MeasureTypeCode > 0 {
 					xmlElementMeasure(prod.RecordReference, &prod.Measure)
@@ -393,6 +401,14 @@ func xmlElementSalesRights(id string, s *SalesRights) {
 		id,
 		s.SalesRightsType,
 		s.RightsCountry)
+	handleErr(stmtErr)
+}
+func xmlElementSalesRestriction(id string, s *SalesRestriction) {
+	createTable(s)
+	insertStmt := getInsertStmt(s)
+	_, stmtErr := insertStmt.Exec(
+		id,
+		s.SalesRestrictionType)
 	handleErr(stmtErr)
 }
 
