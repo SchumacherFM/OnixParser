@@ -48,7 +48,7 @@ type Title struct {
 }
 type Series struct {
 	TitleOfSeries      string `xml:"Series>TitleOfSeries",sql:"varchar(255) NULL"`
-	NumberWithinSeries int `xml:"Series>NumberWithinSeries",sql:"int(10) NOT NULL DEFAULT 0"`
+	NumberWithinSeries string `xml:"Series>NumberWithinSeries",sql:"int(10) NOT NULL DEFAULT 0"`
 }
 
 type Website struct {
@@ -98,7 +98,7 @@ type SalesRestriction struct {
 
 type Measure struct {
 	MeasureTypeCode int    `xml:"Measure>MeasureTypeCode"`
-	Measurement     int    `xml:"Measure>Measurement"`
+	Measurement     float32 `xml:"Measure>Measurement",sql:"decimal(10,2) NOT NULL DEFAULT 0"`
 	MeasureUnitCode string `xml:"Measure>MeasureUnitCode"`
 }
 
@@ -140,8 +140,8 @@ type Product struct {
 	Website
 	Contributor
 	Extent
-	EditionNumber  int    `xml:"EditionNumber"`
-	NumberOfPages  int    `xml:"NumberOfPages"`
+	EditionNumber  string    `xml:"EditionNumber",sql:"varchar(255) NULL"`
+	NumberOfPages  string    `xml:"NumberOfPages",sql:"int(10) NOT NULL DEFAULT 0"`
 	BICMainSubject string `xml:"BICMainSubject"`
 	OtherText
 	AudienceCode   int    `xml:"AudienceCode"`
@@ -209,7 +209,7 @@ func OnixmlDecode(inputFile string) int {
 				if prod.Title.TitleType > 0 {
 					xmlElementTitle(prod.RecordReference, &prod.Title)
 				}
-				if "" != prod.Series.TitleOfSeries || prod.Series.NumberWithinSeries > 0 {
+				if "" != prod.Series.TitleOfSeries || ""!=prod.Series.NumberWithinSeries  {
 					xmlElementSeries(prod.RecordReference, &prod.Series)
 				}
 				if "" != prod.Website.WebsiteLink {
@@ -300,7 +300,7 @@ func xmlElementProduct(prod *Product) {
 		prod.ProductForm,
 		prod.ProductFormDetail,
 		prod.EditionNumber,
-		prod.NumberOfPages,
+		strings.Replace(prod.NumberOfPages, ",", "", -1), // sometimes number can be 1,234
 		prod.BICMainSubject,
 		prod.AudienceCode,
 		prod.PublishingStatus,
