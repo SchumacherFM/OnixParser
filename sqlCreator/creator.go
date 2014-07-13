@@ -65,6 +65,15 @@ func getTableName(name string) string {
 	return tablePrefix + strings.ToLower(name)
 }
 
+func getSqlConfigFromStruct(val reflect.Value){
+	var tinfo        *typeInfo
+	var err error
+	typ := val.Type()
+	tinfo, err = getTypeInfo(typ)
+	handleErr(err)
+	fmt.Printf("%+v\n\n",tinfo)
+}
+
 func GetCreateTableByStruct(anyStruct interface{}) (string) {
 	s := reflect.ValueOf(anyStruct).Elem()
 	typeOfAnyStruct := s.Type()
@@ -73,6 +82,8 @@ func GetCreateTableByStruct(anyStruct interface{}) (string) {
 	if true == tableIsCreated(tableName) {
 		return ""
 	}
+
+	getSqlConfigFromStruct(s)
 
 	createTable := "CREATE TABLE " + QuoteInto(tableName)
 	var columns []string
