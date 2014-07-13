@@ -43,8 +43,12 @@ type ProductIdentifier struct {
 }
 
 type Title struct {
-	TitleType int    `xml:"Title>TitleType"`
-	TitleText string `xml:"Title>TitleText"`
+	TitleType int    `xml:"Title>TitleType",sql:"int(10) NOT NULL"`
+	TitleText string `xml:"Title>TitleText",sql:"varchar(255) NULL"`
+}
+type Series struct {
+	TitleOfSeries      string `xml:"Series>TitleOfSeries",sql:"varchar(255) NULL"`
+	NumberWithinSeries int `xml:"Series>NumberWithinSeries",sql:"int(10) NOT NULL DEFAULT 0"`
 }
 
 type Website struct {
@@ -131,6 +135,7 @@ type Product struct {
 	ProductIdentifier []ProductIdentifier
 	ProductForm       string `xml:"ProductForm"`
 	ProductFormDetail string `xml:"ProductFormDetail"`
+	Series
 	Title
 	Website
 	Contributor
@@ -203,6 +208,9 @@ func OnixmlDecode(inputFile string) int {
 
 				if prod.Title.TitleType > 0 {
 					xmlElementTitle(prod.RecordReference, &prod.Title)
+				}
+				if "" != prod.Series.TitleOfSeries || prod.Series.NumberWithinSeries > 0 {
+					xmlElementSeries(prod.RecordReference, &prod.Series)
 				}
 				if "" != prod.Website.WebsiteLink {
 					xmlElementWebsite(prod.RecordReference, &prod.Website)
@@ -302,24 +310,34 @@ func xmlElementProduct(prod *Product) {
 
 }
 
-func xmlElementProductIdentifier(id string, prodIdentifier *ProductIdentifier) {
-	createTable(prodIdentifier)
-	insertStmt := getInsertStmt(prodIdentifier)
+func xmlElementProductIdentifier(id string, p *ProductIdentifier) {
+	createTable(p)
+	insertStmt := getInsertStmt(p)
 
 	_, stmtErr := insertStmt.Exec(
 		id,
-		prodIdentifier.ProductIDType,
-		prodIdentifier.IDValue)
+		p.ProductIDType,
+		p.IDValue)
 	handleErr(stmtErr)
 }
 
-func xmlElementTitle(id string, title *Title) {
-	createTable(title)
-	insertStmt := getInsertStmt(title)
+func xmlElementTitle(id string, t *Title) {
+	createTable(t)
+	insertStmt := getInsertStmt(t)
 	_, stmtErr := insertStmt.Exec(
 		id,
-		title.TitleType,
-		title.TitleText)
+		t.TitleType,
+		t.TitleText)
+	handleErr(stmtErr)
+}
+
+func xmlElementSeries(id string, s *Series) {
+	createTable(s)
+	insertStmt := getInsertStmt(s)
+	_, stmtErr := insertStmt.Exec(
+		id,
+		s.TitleOfSeries,
+		s.NumberWithinSeries)
 	handleErr(stmtErr)
 }
 
