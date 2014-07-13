@@ -5,26 +5,26 @@ package main
 
 import (
 	"./onixml"
+	"./sqlCreator"
 	"database/sql"
 	"flag"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"net/url"
-	"./sqlCreator"
 	"time"
 )
 
 var (
-	timeStart    = time.Now()
-	inputFile    = flag.String("infile", "demo-availability.xml", "Input file path")
-	dbHost       = flag.String("host", "127.0.0.1", "MySQL host name")
-	dbDb         = flag.String("db", "test", "MySQL db name")
-	dbUser       = flag.String("user", "test", "MySQL user name")
-	dbPass       = flag.String("pass", "test", "MySQL password")
-	tablePrefix  = flag.String("tablePrefix", "onix_", "Table name prefix")
-	dbCon        *sql.DB
-	tablesInDb   = make(map[string]string)
+	timeStart   = time.Now()
+	inputFile   = flag.String("infile", "demo-availability.xml", "Input file path")
+	dbHost      = flag.String("host", "127.0.0.1", "MySQL host name")
+	dbDb        = flag.String("db", "test", "MySQL db name")
+	dbUser      = flag.String("user", "test", "MySQL user name")
+	dbPass      = flag.String("pass", "test", "MySQL password")
+	tablePrefix = flag.String("tablePrefix", "gonix_", "Table name prefix")
+	dbCon       *sql.DB
+	tablesInDb  = make(map[string]string)
 )
 
 func handleErr(theErr error) {

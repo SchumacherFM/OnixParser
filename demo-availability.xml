@@ -15,15 +15,15 @@
             <IDValue>9781401920357</IDValue>
         </ProductIdentifier>
         <ProductIdentifier>
-            <ProductIDType>15</ProductIDType>
             <IDValue>9781401920357</IDValue>
+            <ProductIDType>15</ProductIDType>
         </ProductIdentifier>
         <ProductForm>VI</ProductForm>
         <ProductFormDetail>B305</ProductFormDetail>
-        <Title>
-            <TitleType>01</TitleType>
-            <TitleText>Revealing the Secret!: The Law of Attraction in Action: Episode 5</TitleText>
-        </Title>
+        <!--<Title>-->
+            <!--<TitleType>01</TitleType>-->
+            <!--<TitleText>Revealing the Secret!: The Law of Attraction in Action: Episode 5</TitleText>-->
+        <!--</Title>-->
         <Website>
             <WebsiteLink>http://www.penguin.com.au/default.cfm?SBN=9781401920357</WebsiteLink>
         </Website>
@@ -93,8 +93,8 @@
             <IDValue>1845380029</IDValue>
         </ProductIdentifier>
         <ProductIdentifier>
-            <ProductIDType>03</ProductIDType>
             <IDValue>9781845380021</IDValue>
+            <ProductIDType>03</ProductIDType>
         </ProductIdentifier>
         <ProductIdentifier>
             <ProductIDType>15</ProductIDType>

@@ -89,7 +89,7 @@ func GetCreateTableByStruct(anyStruct interface{}) (string) {
 			tableColumnAdd(tableName, columnName)
 		}
 	}
-	columns = append(columns, "\tPRIMARY KEY (`id`)")
+	columns = append(columns, "\tKEY (`id`)")
 	return createTable + " (\n" + strings.Join(columns, ",\n") + "\n) ENGINE=InnoDB DEFAULT CHARSET=utf8;"
 }
 
