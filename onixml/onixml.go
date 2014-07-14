@@ -5,12 +5,13 @@ package onixml
 
 import (
 	"encoding/xml"
-	"fmt"
+	"time"
 	"database/sql"
 	"os"
 	"reflect"
 	"strings"
 	"../sqlCreator"
+	"log"
 )
 
 type tableColumn struct {
@@ -36,20 +37,25 @@ func handleErr(theErr error) {
 	}
 }
 
+func printDuration(timeStart time.Time, objectCount int, currentCount int) {
+	timeEnd := time.Now()
+	duration := timeEnd.Sub(timeStart)
+	log.Printf("%v for %d entities. Processed %d\n", duration, objectCount, currentCount)
+}
+
+
 func OnixmlDecode(inputFile string) int {
 	sqlCreator.SetTablePrefix(tablePrefix)
 	total := 0
 	xmlFile, err := os.Open(inputFile)
-	if err != nil {
-		fmt.Println("Error opening file:", err)
-		return total
-	}
+	handleErr(err)
 	defer xmlFile.Close()
 
 	decoder := xml.NewDecoder(xmlFile)
 
 	var inElement string
 	for {
+		timeStart := time.Now()
 		// Read tokens from the XML document in a stream.
 		t, dtErr := decoder.Token()
 		if t == nil {
@@ -69,13 +75,14 @@ func OnixmlDecode(inputFile string) int {
 				// variable prod which is a Product (se above)
 				decErr := decoder.DecodeElement(&prod, &se)
 				handleErr(decErr)
+
 				xmlElementProduct(&prod)
+
 				if len(prod.ProductIdentifier) > 0 {
 					for _, prodIdentifier := range prod.ProductIdentifier {
 						xmlElementProductIdentifier(prod.RecordReference, &prodIdentifier)
 					}
 				}
-
 				if prod.Title.TitleType > 0 {
 					xmlElementTitle(prod.RecordReference, &prod.Title)
 				}
@@ -126,6 +133,9 @@ func OnixmlDecode(inputFile string) int {
 					xmlElementMarketRepresentation(prod.RecordReference, &prod.MarketRepresentation)
 				}
 
+				if 0 == total%1000 {
+					printDuration(timeStart, 1000, total)
+				}
 
 				total++
 			}

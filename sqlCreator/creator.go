@@ -1,7 +1,6 @@
 package sqlCreator
 
 import (
-	"fmt"
 	"strings"
 	"reflect"
 )
@@ -39,67 +38,40 @@ func isValidTableColumn(elementType string) bool {
 	return elementType2 == "int" || elementType2 == "str" || elementType2 == "flo"
 }
 
-
-func getTableColumn(elementType string) string {
-
-	if false == isValidTableColumn(elementType) {
-		return ""
-	}
-
-	elementTypeByte := []byte(elementType)
-	elementType2 := string(elementTypeByte[0:3])
-	switch elementType2 {
-	case "int":
-		return "bigint(14) NOT NULL DEFAULT 0"
-	case "str":
-		return "text NULL"
-	case "flo":
-		return "decimal(10,2) NOT NULL DEFAULT 0.0"
-	default:
-		//fmt.Printf("type %s => %s not supported\n", elementType2, elementType)
-	}
-	return ""
+func getTableName(anyStruct interface{}) (string, reflect.Value) {
+	s := reflect.ValueOf(anyStruct).Elem()
+	typeOfAnyStruct := s.Type()
+	return tablePrefix+strings.ToLower(typeOfAnyStruct.Name()), s
 }
 
-func getTableName(name string) string {
-	return tablePrefix + strings.ToLower(name)
-}
-
-func getSqlConfigFromStruct(val reflect.Value){
+// @todo use Cachekey to speed up and avoid reflection
+func getSqlConfigFromStruct(val reflect.Value, cacheKey string) *typeInfo {
 	var tinfo        *typeInfo
 	var err error
 	typ := val.Type()
 	tinfo, err = getTypeInfo(typ)
 	handleErr(err)
-	fmt.Printf("%+v\n\n",tinfo)
+	return tinfo
 }
 
 // @todo refactor and use reflext.Value instead of crap interface
 func GetCreateTableByStruct(anyStruct interface{}) (string) {
-	s := reflect.ValueOf(anyStruct).Elem()
-	typeOfAnyStruct := s.Type()
-	tableName := getTableName(typeOfAnyStruct.Name())
+	tableName, reflectValue := getTableName(anyStruct)
 
 	if true == tableIsCreated(tableName) {
 		return ""
 	}
 
-	getSqlConfigFromStruct(s)
+	columnDefinitions := getSqlConfigFromStruct(reflectValue, tableName)
 
 	createTable := "CREATE TABLE " + QuoteInto(tableName)
 	var columns []string
 	columns = append(columns, "\t`id` varchar(50) NOT NULL")
 
-	for i := 0; i < s.NumField(); i++ {
-		f := s.Field(i)
-		//				fmt.Printf("%d: %s %s = %v\n", i,
-		//					typeOfAnyStruct.Field(i).Name, f.Type(), f.Interface())
-		columnName := typeOfAnyStruct.Field(i).Name
-		columnSqlType := getTableColumn(f.Type().Name())
-		if "" != columnSqlType {
-			columns = append(columns, fmt.Sprintf("\t`%s` %s", columnName, columnSqlType))
-			tableColumnAdd(tableName, columnName)
-		}
+	for i := 0; i < len(columnDefinitions.fields); i++ {
+		col := columnDefinitions.fields[i]
+		columns = append(columns, "\t`"+col.name+"` "+col.colType)
+		tableColumnAdd(tableName, col.name)
 	}
 	columns = append(columns, "\tKEY (`id`)")
 	return createTable + " (\n" + strings.Join(columns, ",\n") + "\n) ENGINE=InnoDB DEFAULT CHARSET=utf8;"
@@ -117,24 +89,16 @@ func tableIsCreated(tableName string) bool {
 }
 
 func GetInsertTableByStruct(anyStruct interface{}) (string) {
-	s := reflect.ValueOf(anyStruct).Elem()
-	typeOfAnyStruct := s.Type()
-	tableName := getTableName(typeOfAnyStruct.Name())
-
+	tableName, reflectValue := getTableName(anyStruct)
+	columnDefinitions := getSqlConfigFromStruct(reflectValue, tableName)
 	insertTable := "INSERT INTO " + QuoteInto(tableName)
 	var columns, jokers []string
 	columns = append(columns, "`id`")
 	jokers = append(jokers, "?")
-	for i := 0; i < s.NumField(); i++ {
-		f := s.Field(i)
-		columnName := typeOfAnyStruct.Field(i).Name
-
-		if false == isValidTableColumn(f.Type().Name()) { // if type of column
-			continue
-		}
-		columns = append(columns, QuoteInto(columnName))
+	for i := 0; i < len(columnDefinitions.fields); i++ {
+		col := columnDefinitions.fields[i]
+		columns = append(columns, QuoteInto(col.name))
 		jokers = append(jokers, "?")
 	}
-	// @todo check for column miss match
 	return insertTable + " (" + strings.Join(columns, ",") + ") VALUES (" + strings.Join(jokers, ",") + ")"
 }

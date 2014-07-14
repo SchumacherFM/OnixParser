@@ -8,15 +8,13 @@
 package sqlCreator
 
 import (
-	//	"fmt"
-	//	"strings"
 	"reflect"
 	"sync"
 )
 
 // typeInfo holds details for the xml representation of a type.
 type typeInfo struct {
-	xmlname string
+	structName string
 	fields  []fieldInfo
 }
 
@@ -52,8 +50,8 @@ func getTypeInfo(typ reflect.Type) (*typeInfo, error) {
 		n := typ.NumField()
 		for i := 0; i < n; i++ {
 			f := typ.Field(i)
-			if f.PkgPath != "" || f.Tag.Get("sql") == "-" {
-				continue // Private field
+			if f.PkgPath != "" || "" == f.Tag.Get("sql") {
+				continue // Private field or sub struct
 			}
 
 			finfo, err := structFieldInfo(typ, &f)
@@ -61,7 +59,7 @@ func getTypeInfo(typ reflect.Type) (*typeInfo, error) {
 				return nil, err
 			}
 
-			tinfo.xmlname = typ.Name()
+			tinfo.structName = typ.Name()
 
 			// Add the field if it doesn't conflict with other fields.
 			if err := addFieldInfo(typ, tinfo, finfo); err != nil {

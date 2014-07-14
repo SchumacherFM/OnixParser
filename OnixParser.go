@@ -70,7 +70,7 @@ func initDatabase() {
 
 	if len(tablesInDb) > 0 {
 		for table := range tablesInDb {
-			_, err := getConnection().Query("DROP TABLE " + sqlCreator.QuoteInto(table))
+			_, err := getConnection().Exec("DROP TABLE " + sqlCreator.QuoteInto(table))
 			handleErr(err)
 		}
 		log.Printf("Dropped %d existing tables", len(tablesInDb))
@@ -80,8 +80,8 @@ func initDatabase() {
 func printDuration() {
 	timeEnd := time.Now()
 	duration := timeEnd.Sub(timeStart)
-	fmt.Printf("XML Parser took %dh %dm %fs to run.\n", int(duration.Hours()), int(duration.Minutes()), duration.Seconds())
-	fmt.Printf("XML Parser took %v to run.\n", duration)
+	log.Printf("XML Parser took %dh %dm %fs to run.\n", int(duration.Hours()), int(duration.Minutes()), duration.Seconds())
+	log.Printf("XML Parser took %v to run.\n", duration)
 }
 
 func main() {
@@ -92,7 +92,7 @@ func main() {
 	onixml.SetTablePrefix(*tablePrefix)
 	total := onixml.OnixmlDecode(*inputFile)
 
-	fmt.Printf("Total articles: %d \n", total)
+	log.Printf("Total articles: %d \n", total)
 	getConnection().Close()
 	printDuration()
 }
