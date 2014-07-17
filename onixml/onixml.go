@@ -12,6 +12,7 @@ import (
 	"strings"
 	"../sqlCreator"
 	"log"
+	"fmt"
 )
 
 type tableColumn struct {
@@ -55,6 +56,7 @@ func OnixmlDecode(inputFile string) int {
 
 	var inElement string
 	timeStart := time.Now()
+	//	productChan := make(chan *Product)
 	for {
 		// Read tokens from the XML document in a stream.
 		t, dtErr := decoder.Token()
@@ -75,63 +77,10 @@ func OnixmlDecode(inputFile string) int {
 				// variable prod which is a Product (se above)
 				decErr := decoder.DecodeElement(&prod, &se)
 				handleErr(decErr)
-
-				xmlElementProduct(&prod)
-
-				if len(prod.ProductIdentifier) > 0 {
-					for _, prodIdentifier := range prod.ProductIdentifier {
-						xmlElementProductIdentifier(prod.RecordReference, &prodIdentifier)
-					}
-				}
-				if prod.Title.TitleType > 0 {
-					xmlElementTitle(prod.RecordReference, &prod.Title)
-				}
-				if "" != prod.Series.TitleOfSeries || "" != prod.Series.NumberWithinSeries {
-					xmlElementSeries(prod.RecordReference, &prod.Series)
-				}
-				if "" != prod.Website.WebsiteLink {
-					xmlElementWebsite(prod.RecordReference, &prod.Website)
-				}
-				if len(prod.Contributor) > 0 {
-					for _, prodContributor := range prod.Contributor {
-						if prodContributor.SequenceNumber > 0 {
-							xmlElementContributor(prod.RecordReference, &prodContributor)
-						}
-					}
-				}
-				if prod.Extent.ExtentType > 0 {
-					xmlElementExtent(prod.RecordReference, &prod.Extent)
-				}
-				if prod.OtherText.TextTypeCode > 0 {
-					xmlElementOtherText(prod.RecordReference, &prod.OtherText)
-				}
-				if prod.MediaFile.MediaFileTypeCode > 0 {
-					xmlElementMediaFile(prod.RecordReference, &prod.MediaFile)
-				}
-				if "" != prod.Imprint.ImprintName {
-					xmlElementImprint(prod.RecordReference, &prod.Imprint)
-				}
-				if prod.Publisher.PublishingRole > 0 {
-					xmlElementPublisher(prod.RecordReference, &prod.Publisher)
-				}
-				if prod.SalesRights.SalesRightsType > 0 {
-					xmlElementSalesRights(prod.RecordReference, &prod.SalesRights)
-				}
-				if prod.SalesRestriction.SalesRestrictionType > 0 {
-					xmlElementSalesRestriction(prod.RecordReference, &prod.SalesRestriction)
-				}
-				if prod.Measure.MeasureTypeCode > 0 {
-					xmlElementMeasure(prod.RecordReference, &prod.Measure)
-				}
-				if prod.RelatedProduct.ProductIDType > 0 {
-					xmlElementRelatedProduct(prod.RecordReference, &prod.RelatedProduct)
-				}
-				if "" != prod.SupplyDetail.SupplierName {
-					xmlElementSupplyDetail(prod.RecordReference, &prod.SupplyDetail)
-				}
-				if "" != prod.MarketRepresentation.AgentName {
-					xmlElementMarketRepresentation(prod.RecordReference, &prod.MarketRepresentation)
-				}
+				//				productChan <- &prod
+				//				go parseXmlElements(productChan)
+				// go printSomething(&prod)
+				parseXmlElements(&prod)
 
 				if total > 0 && 0 == total%1000 {
 					printDuration(timeStart, 1000, total)
@@ -142,11 +91,79 @@ func OnixmlDecode(inputFile string) int {
 		default:
 		}
 	}
+
+	// close statements
+	for structName := range preparedInsertStmt {
+		stmt := preparedInsertStmt[structName]
+		err := stmt.Close()
+		handleErr(err)
+	}
+
 	return total
 }
 
-func parseXmlElements(){
+func printSomething(prod *Product) {
+	fmt.Printf("%v\n", prod)
+}
 
+func parseXmlElements(prod *Product) {
+
+	xmlElementProduct(prod)
+
+	if len(prod.ProductIdentifier) > 0 {
+		for _, prodIdentifier := range prod.ProductIdentifier {
+			xmlElementProductIdentifier(prod.RecordReference, &prodIdentifier)
+		}
+	}
+	if prod.Title.TitleType > 0 {
+		xmlElementTitle(prod.RecordReference, &prod.Title)
+	}
+	if "" != prod.Series.TitleOfSeries || "" != prod.Series.NumberWithinSeries {
+		xmlElementSeries(prod.RecordReference, &prod.Series)
+	}
+	if "" != prod.Website.WebsiteLink {
+		xmlElementWebsite(prod.RecordReference, &prod.Website)
+	}
+	if len(prod.Contributor) > 0 {
+		for _, prodContributor := range prod.Contributor {
+			if prodContributor.SequenceNumber > 0 {
+				xmlElementContributor(prod.RecordReference, &prodContributor)
+			}
+		}
+	}
+	if prod.Extent.ExtentType > 0 {
+		xmlElementExtent(prod.RecordReference, &prod.Extent)
+	}
+	if prod.OtherText.TextTypeCode > 0 {
+		xmlElementOtherText(prod.RecordReference, &prod.OtherText)
+	}
+	if prod.MediaFile.MediaFileTypeCode > 0 {
+		xmlElementMediaFile(prod.RecordReference, &prod.MediaFile)
+	}
+	if "" != prod.Imprint.ImprintName {
+		xmlElementImprint(prod.RecordReference, &prod.Imprint)
+	}
+	if prod.Publisher.PublishingRole > 0 {
+		xmlElementPublisher(prod.RecordReference, &prod.Publisher)
+	}
+	if prod.SalesRights.SalesRightsType > 0 {
+		xmlElementSalesRights(prod.RecordReference, &prod.SalesRights)
+	}
+	if prod.SalesRestriction.SalesRestrictionType > 0 {
+		xmlElementSalesRestriction(prod.RecordReference, &prod.SalesRestriction)
+	}
+	if prod.Measure.MeasureTypeCode > 0 {
+		xmlElementMeasure(prod.RecordReference, &prod.Measure)
+	}
+	if prod.RelatedProduct.ProductIDType > 0 {
+		xmlElementRelatedProduct(prod.RecordReference, &prod.RelatedProduct)
+	}
+	if "" != prod.SupplyDetail.SupplierName {
+		xmlElementSupplyDetail(prod.RecordReference, &prod.SupplyDetail)
+	}
+	if "" != prod.MarketRepresentation.AgentName {
+		xmlElementMarketRepresentation(prod.RecordReference, &prod.MarketRepresentation)
+	}
 }
 
 func getNameOfStruct(anyStruct interface{}) string {
