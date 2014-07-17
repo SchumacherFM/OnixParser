@@ -33,7 +33,7 @@ func SetTablePrefix(prefix string) {
 
 func handleErr(theErr error) {
 	if nil != theErr {
-		panic(theErr.Error())
+		log.Fatal(theErr.Error())
 	}
 }
 
@@ -54,8 +54,8 @@ func OnixmlDecode(inputFile string) int {
 	decoder := xml.NewDecoder(xmlFile)
 
 	var inElement string
+	timeStart := time.Now()
 	for {
-		timeStart := time.Now()
 		// Read tokens from the XML document in a stream.
 		t, dtErr := decoder.Token()
 		if t == nil {
@@ -133,16 +133,20 @@ func OnixmlDecode(inputFile string) int {
 					xmlElementMarketRepresentation(prod.RecordReference, &prod.MarketRepresentation)
 				}
 
-				if 0 == total%1000 {
+				if total > 0 && 0 == total%1000 {
 					printDuration(timeStart, 1000, total)
+					timeStart = time.Now()
 				}
-
 				total++
 			}
 		default:
 		}
 	}
 	return total
+}
+
+func parseXmlElements(){
+
 }
 
 func getNameOfStruct(anyStruct interface{}) string {

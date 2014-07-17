@@ -16,7 +16,6 @@ import (
 )
 
 var (
-	timeStart   = time.Now()
 	inputFile   = flag.String("infile", "demo-availability.xml", "Input file path")
 	dbHost      = flag.String("host", "127.0.0.1", "MySQL host name")
 	dbDb        = flag.String("db", "test", "MySQL db name")
@@ -29,7 +28,7 @@ var (
 
 func handleErr(theErr error) {
 	if nil != theErr {
-		panic(theErr.Error())
+		log.Fatal(theErr.Error())
 	}
 }
 
@@ -38,10 +37,10 @@ func getConnection() *sql.DB {
 
 	if nil == dbCon {
 		dbCon, dbConErr = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s",
-			url.QueryEscape(*dbUser),
-			url.QueryEscape(*dbPass),
-			*dbHost,
-			*dbDb))
+				url.QueryEscape(*dbUser),
+				url.QueryEscape(*dbPass),
+				*dbHost,
+				*dbDb))
 		handleErr(dbConErr)
 		// why is defer close not working here?
 	}
@@ -77,7 +76,7 @@ func initDatabase() {
 	}
 }
 
-func printDuration() {
+func printDuration(timeStart time.Time) {
 	timeEnd := time.Now()
 	duration := timeEnd.Sub(timeStart)
 	log.Printf("XML Parser took %dh %dm %fs to run.\n", int(duration.Hours()), int(duration.Minutes()), duration.Seconds())
@@ -85,6 +84,7 @@ func printDuration() {
 }
 
 func main() {
+	timeStart := time.Now()
 	flag.Parse()
 	initDatabase()
 
@@ -94,5 +94,5 @@ func main() {
 
 	log.Printf("Total articles: %d \n", total)
 	getConnection().Close()
-	printDuration()
+	printDuration(timeStart)
 }

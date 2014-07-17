@@ -3,6 +3,7 @@ package sqlCreator
 import (
 	"strings"
 	"reflect"
+	"log"
 )
 
 type tableColumn struct {
@@ -25,7 +26,7 @@ func QuoteInto(data string) string {
 
 func handleErr(theErr error) {
 	if nil != theErr {
-		panic(theErr.Error())
+		log.Fatal(theErr.Error())
 	}
 }
 
@@ -34,7 +35,7 @@ func isValidTableColumn(elementType string) bool {
 		return false
 	}
 	elementTypeByte := []byte(elementType)
-	elementType2 := string(elementTypeByte[0:3])
+	elementType2 := string(elementTypeByte[0:3]) // substring(str,0,3) ;-)
 	return elementType2 == "int" || elementType2 == "str" || elementType2 == "flo"
 }
 
