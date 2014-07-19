@@ -145,7 +145,7 @@ type (
 		Extent
 		EditionNumber      string `xml:"EditionNumber" sql:"varchar(255) NULL"`
 		NumberOfPages      string `xml:"NumberOfPages" sql:"int(10) NOT NULL DEFAULT 0"`
-		IllustrationsNote  string `xml:"NumberOfPages" sql:"varchar(255) NULL"`
+		IllustrationsNote  string `xml:"IllustrationsNote" sql:"varchar(255) NULL"`
 		BICMainSubject     string `xml:"BICMainSubject" sql:"varchar(20) NULL"`
 		OtherText          []OtherText
 		AudienceCode       int `xml:"AudienceCode" sql:"int(10) NOT NULL DEFAULT 0"`
