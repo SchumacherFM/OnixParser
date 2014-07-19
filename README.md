@@ -17,3 +17,9 @@ Inspired for learning by [http://blog.davidsingleton.org/parsing-huge-xml-files-
 see onixSQL.php
 
 PHP needs > 12h of parsing. PHP 5.5 used.
+
+# License
+
+General Public License
+
+[http://www.gnu.org/copyleft/gpl.html](http://www.gnu.org/copyleft/gpl.html)
