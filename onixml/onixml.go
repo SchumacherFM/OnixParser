@@ -93,8 +93,7 @@ func OnixmlDecode(inputFile string) int {
 	}
 
 	// close statements
-	for structName := range preparedInsertStmt {
-		stmt := preparedInsertStmt[structName]
+	for _, stmt := range preparedInsertStmt {
 		err := stmt.Close()
 		handleErr(err)
 	}
@@ -128,6 +127,13 @@ func parseXmlElements(prod *Product) {
 		for _, prodContributor := range prod.Contributor {
 			if prodContributor.SequenceNumber > 0 {
 				xmlElementContributor(prod.RecordReference, &prodContributor)
+			}
+		}
+	}
+	if len(prod.Subject) > 0 {
+		for _, prodSubject := range prod.Subject {
+			if prodSubject.SubjectSchemeIdentifier > 0 {
+				xmlElementSubject(prod.RecordReference, &prodSubject)
 			}
 		}
 	}
@@ -265,6 +271,16 @@ func xmlElementContributor(id string, c *Contributor) {
 		c.ContributorRole,
 		c.PersonNameInverted,
 		c.KeyNames)
+	handleErr(stmtErr)
+}
+
+func xmlElementSubject(id string, s *Subject) {
+	createTable(s)
+	insertStmt := getInsertStmt(s)
+	_, stmtErr := insertStmt.Exec(
+		id,
+		s.SubjectSchemeIdentifier,
+		s.SubjectCode)
 	handleErr(stmtErr)
 }
 
