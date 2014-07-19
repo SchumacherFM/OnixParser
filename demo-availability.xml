@@ -3952,7 +3952,7 @@
             </Stock>
             <Price>
                 <PriceTypeCode>02</PriceTypeCode>
-                <PriceAmount>22.95</PriceAmount>
+                <PriceAmount>n/a</PriceAmount>
                 <CurrencyCode>AUD</CurrencyCode>
                 <CountryCode>AU</CountryCode>
             </Price>

@@ -60,9 +60,10 @@ func printDuration(timeStart time.Time, objectCount int, currentCount int) {
 }
 
 
-func OnixmlDecode(inputFile string) int {
+func OnixmlDecode(inputFile string) (int, int) {
 	sqlCreator.SetTablePrefix(tablePrefix)
 	total := 0
+	totalErr := 0
 	xmlFile, err := os.Open(inputFile)
 	handleErr(err)
 	defer xmlFile.Close()
@@ -81,7 +82,7 @@ func OnixmlDecode(inputFile string) int {
 		handleErr(dtErr)
 
 		// Inspect the type of the token just read.
-		switch se := t.(type) { // wtf? I don't understand this magic
+		switch se := t.(type) {
 		case xml.StartElement:
 			// If we just read a StartElement token
 			inElement = se.Name.Local
@@ -91,7 +92,11 @@ func OnixmlDecode(inputFile string) int {
 				// decode a whole chunk of following XML into the
 				// variable prod which is a Product (se above)
 				decErr := decoder.DecodeElement(&prod, &se)
-				handleErr(decErr)
+				if nil != decErr {
+					log.Printf("Decode Error, Type mismatch: %v\n", prod)
+					totalErr++
+				}
+
 				//				productChan <- &prod
 				//				go parseXmlElements(productChan)
 				// go printSomething(&prod)
@@ -113,7 +118,7 @@ func OnixmlDecode(inputFile string) int {
 		handleErr(err)
 	}
 
-	return total
+	return total, totalErr
 }
 
 func printSomething(prod *Product) {
