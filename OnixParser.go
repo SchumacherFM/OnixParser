@@ -37,10 +37,10 @@ func getConnection() *sql.DB {
 
 	if nil == dbCon {
 		dbCon, dbConErr = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s",
-				url.QueryEscape(*dbUser),
-				url.QueryEscape(*dbPass),
-				*dbHost,
-				*dbDb))
+			url.QueryEscape(*dbUser),
+			url.QueryEscape(*dbPass),
+			*dbHost,
+			*dbDb))
 		handleErr(dbConErr)
 		// why is defer close not working here?
 	}

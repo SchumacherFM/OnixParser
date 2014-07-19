@@ -140,9 +140,16 @@ func parseXmlElements(prod *Product) {
 	if prod.Extent.ExtentType > 0 {
 		xmlElementExtent(prod.RecordReference, &prod.Extent)
 	}
-	if prod.OtherText.TextTypeCode > 0 {
-		xmlElementOtherText(prod.RecordReference, &prod.OtherText)
+
+	if len(prod.OtherText) > 0 {
+		for _, prodOtherText := range prod.OtherText {
+			if prodOtherText.TextTypeCode > 0 {
+				xmlElementOtherText(prod.RecordReference, &prodOtherText)
+			}
+		}
 	}
+
+
 	if prod.MediaFile.MediaFileTypeCode > 0 {
 		xmlElementMediaFile(prod.RecordReference, &prod.MediaFile)
 	}
