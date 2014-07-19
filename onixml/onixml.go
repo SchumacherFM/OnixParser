@@ -19,25 +19,21 @@
 package onixml
 
 import (
-	"encoding/xml"
-	"time"
+	"../sqlCreator"
 	"database/sql"
+	"encoding/xml"
+	"log"
 	"os"
 	"reflect"
 	"strings"
-	"../sqlCreator"
-	"log"
-	"fmt"
+	"sync" // for concurrency
+	"time"
+	"runtime"
 )
 
-type tableColumn struct {
-	Table, Column string
-}
-
 var (
-	dbCon *sql.DB
-	tablePrefix string
-	preparedInsertStmt = make(map[string]*sql.Stmt)
+	dbCon              *sql.DB
+	tablePrefix        string
 )
 
 func SetConnection(aCon *sql.DB) {
@@ -49,30 +45,24 @@ func SetTablePrefix(prefix string) {
 
 func handleErr(theErr error) {
 	if nil != theErr {
-		log.Fatal(theErr.Error())
+		panic(theErr)
+		//	log.Fatal(theErr.Error())
 	}
 }
 
-func printDuration(timeStart time.Time, objectCount int, currentCount int) {
-	timeEnd := time.Now()
-	duration := timeEnd.Sub(timeStart)
-	log.Printf("%v for %d entities. Processed %d\n", duration, objectCount, currentCount)
-}
-
-
 func OnixmlDecode(inputFile string) (int, int) {
+
 	sqlCreator.SetTablePrefix(tablePrefix)
 	total := 0
 	totalErr := 0
 	xmlFile, err := os.Open(inputFile)
 	handleErr(err)
 	defer xmlFile.Close()
-
 	decoder := xml.NewDecoder(xmlFile)
-
+	createTables()
+	var wg sync.WaitGroup
 	var inElement string
 	timeStart := time.Now()
-	//	productChan := make(chan *Product)
 	for {
 		// Read tokens from the XML document in a stream.
 		t, dtErr := decoder.Token()
@@ -93,17 +83,14 @@ func OnixmlDecode(inputFile string) (int, int) {
 				// variable prod which is a Product (se above)
 				decErr := decoder.DecodeElement(&prod, &se)
 				if nil != decErr {
-					log.Printf("Decode Error, Type mismatch: %v\n", prod)
+					log.Printf("Decode Error, Type mismatch: %v\n%v\n", prod, decErr)
 					totalErr++
 				}
-
-				//				productChan <- &prod
-				//				go parseXmlElements(productChan)
-				// go printSomething(&prod)
-				parseXmlElements(&prod)
+				wg.Add(1)
+				go parseXmlElementsConcurrent(&prod, dbCon, &wg)
 
 				if total > 0 && 0 == total%1000 {
-					printDuration(timeStart, 1000, total)
+					printDuration(timeStart, total)
 					timeStart = time.Now()
 				}
 				total++
@@ -111,21 +98,63 @@ func OnixmlDecode(inputFile string) (int, int) {
 		default:
 		}
 	}
-
-	// close statements
-	for _, stmt := range preparedInsertStmt {
-		err := stmt.Close()
-		handleErr(err)
-	}
+	log.Print("Jepoardy theme song. Waiting for GoRoutines to finish ...")
+	wg.Wait() // wait for the goroutines to finish
 
 	return total, totalErr
 }
 
-func printSomething(prod *Product) {
-	fmt.Printf("%v\n", prod)
+
+func createTables() {
+
+	// is there a way to do this easier/better?
+	structSlice := make([]interface{}, 19)
+	structSlice[0] = new(Product)
+	structSlice[1] = new(ProductIdentifier)
+	structSlice[2] = new(Title)
+	structSlice[3] = new(Series)
+	structSlice[4] = new(Website)
+	structSlice[5] = new(Contributor)
+	structSlice[6] = new(Subject)
+	structSlice[7] = new(Extent)
+	structSlice[8] = new(OtherText)
+	structSlice[9] = new(MediaFile)
+	structSlice[10] = new(Imprint)
+	structSlice[11] = new(Publisher)
+	structSlice[12] = new(SalesRights)
+	structSlice[13] = new(SalesRestriction)
+	structSlice[14] = new(Measure)
+	structSlice[15] = new(RelatedProduct)
+	structSlice[16] = new(SupplyDetail)
+	structSlice[17] = new(Price)
+	structSlice[18] = new(MarketRepresentation)
+
+	for _, theStruct := range structSlice {
+		createTable(theStruct)
+	}
 }
 
-func parseXmlElements(prod *Product) {
+func createTable(anyStruct interface{}) {
+	createTable := sqlCreator.GetCreateTableByStruct(anyStruct)
+	_, err := dbCon.Exec(createTable) // instead of .Query because we don't care for result. Exec closes resource
+	handleErr(err)
+}
+
+func getNameOfStruct(anyStruct interface{}) string {
+	s := reflect.ValueOf(anyStruct).Elem()
+	typeOfAnyStruct := s.Type()
+	return typeOfAnyStruct.Name()
+}
+
+
+
+func getInsertStmt(anyStruct interface{}) string {
+	return sqlCreator.GetInsertTableByStruct(anyStruct)
+}
+
+func parseXmlElementsConcurrent(prod *Product, sharedDbCon *sql.DB, wg *sync.WaitGroup) {
+	dbCon = sharedDbCon // as we are in another thread set the dbCon new
+	defer wg.Done()
 
 	xmlElementProduct(prod)
 
@@ -203,40 +232,15 @@ func parseXmlElements(prod *Product) {
 	}
 }
 
-func getNameOfStruct(anyStruct interface{}) string {
-	s := reflect.ValueOf(anyStruct).Elem()
-	typeOfAnyStruct := s.Type()
-	return typeOfAnyStruct.Name()
-}
-
-func createTable(anyStruct interface{}) {
-	createTable := sqlCreator.GetCreateTableByStruct(anyStruct)
-	if "" != createTable {
-		_, err := dbCon.Exec(createTable) // instead of .Query because we dont care for result. Exec closes resource
-		handleErr(err)
-	}
-}
-
-func getInsertStmt(anyStruct interface{}) *sql.Stmt {
-	structName := getNameOfStruct(anyStruct)
-	_, isSet := preparedInsertStmt[structName]
-	if false == isSet {
-		var err error
-		insertTable := sqlCreator.GetInsertTableByStruct(anyStruct)
-		preparedInsertStmt[structName], err = dbCon.Prepare(insertTable)
-		handleErr(err)
-	}
-	return preparedInsertStmt[structName]
-}
 
 func xmlElementProduct(prod *Product) {
-	createTable(prod)
-	insertStmt := getInsertStmt(prod)
+	iSql := getInsertStmt(prod)
 	// _, stmtErr := insertStmt.Exec.Call(prod) => that would be nice ... but how?
 	// static typed language and that would cost performance
 	/* sometimes number can be 1,234 */
-	_, stmtErr := insertStmt.Exec(
-		// avoiding reflection
+	// avoiding reflection
+	_, stmtErr := dbCon.Exec(
+		iSql,
 		prod.RecordReference,
 		prod.RecordReference,
 		prod.NotificationType,
@@ -255,10 +259,9 @@ func xmlElementProduct(prod *Product) {
 }
 
 func xmlElementProductIdentifier(id string, p *ProductIdentifier) {
-	createTable(p)
-	insertStmt := getInsertStmt(p)
-
-	_, stmtErr := insertStmt.Exec(
+	iSql := getInsertStmt(p)
+	_, stmtErr := dbCon.Exec(
+		iSql,
 		id,
 		p.ProductIDType,
 		p.IDValue)
@@ -266,10 +269,9 @@ func xmlElementProductIdentifier(id string, p *ProductIdentifier) {
 }
 
 func xmlElementTitle(id string, t *Title) {
-	createTable(t)
-	insertStmt := getInsertStmt(t)
-	_, stmtErr := insertStmt.Exec(
-		id,
+	iSql := getInsertStmt(t)
+	_, stmtErr := dbCon.Exec(
+		iSql, id,
 		t.TitleType,
 		t.TitleText,
 		t.TitlePrefix,
@@ -278,29 +280,26 @@ func xmlElementTitle(id string, t *Title) {
 }
 
 func xmlElementSeries(id string, s *Series) {
-	createTable(s)
-	insertStmt := getInsertStmt(s)
-	_, stmtErr := insertStmt.Exec(
-		id,
+	iSql := getInsertStmt(s)
+	_, stmtErr := dbCon.Exec(
+		iSql, id,
 		s.TitleOfSeries,
 		s.NumberWithinSeries)
 	handleErr(stmtErr)
 }
 
 func xmlElementWebsite(id string, w *Website) {
-	createTable(w)
-	insertStmt := getInsertStmt(w)
-	_, stmtErr := insertStmt.Exec(
-		id,
+	iSql := getInsertStmt(w)
+	_, stmtErr := dbCon.Exec(
+		iSql, id,
 		w.WebsiteLink)
 	handleErr(stmtErr)
 }
 
 func xmlElementContributor(id string, c *Contributor) {
-	createTable(c)
-	insertStmt := getInsertStmt(c)
-	_, stmtErr := insertStmt.Exec(
-		id,
+	iSql := getInsertStmt(c)
+	_, stmtErr := dbCon.Exec(
+		iSql, id,
 		c.SequenceNumber,
 		c.ContributorRole,
 		c.PersonNameInverted,
@@ -310,20 +309,18 @@ func xmlElementContributor(id string, c *Contributor) {
 }
 
 func xmlElementSubject(id string, s *Subject) {
-	createTable(s)
-	insertStmt := getInsertStmt(s)
-	_, stmtErr := insertStmt.Exec(
-		id,
+	iSql := getInsertStmt(s)
+	_, stmtErr := dbCon.Exec(
+		iSql, id,
 		s.SubjectSchemeIdentifier,
 		s.SubjectCode)
 	handleErr(stmtErr)
 }
 
 func xmlElementExtent(id string, e *Extent) {
-	createTable(e)
-	insertStmt := getInsertStmt(e)
-	_, stmtErr := insertStmt.Exec(
-		id,
+	iSql := getInsertStmt(e)
+	_, stmtErr := dbCon.Exec(
+		iSql, id,
 		e.ExtentType,
 		e.ExtentValue,
 		e.ExtentUnit)
@@ -331,20 +328,18 @@ func xmlElementExtent(id string, e *Extent) {
 }
 
 func xmlElementOtherText(id string, o *OtherText) {
-	createTable(o)
-	insertStmt := getInsertStmt(o)
-	_, stmtErr := insertStmt.Exec(
-		id,
+	iSql := getInsertStmt(o)
+	_, stmtErr := dbCon.Exec(
+		iSql, id,
 		o.TextTypeCode,
 		o.Text)
 	handleErr(stmtErr)
 }
 
 func xmlElementMediaFile(id string, m *MediaFile) {
-	createTable(m)
-	insertStmt := getInsertStmt(m)
-	_, stmtErr := insertStmt.Exec(
-		id,
+	iSql := getInsertStmt(m)
+	_, stmtErr := dbCon.Exec(
+		iSql, id,
 		m.MediaFileTypeCode,
 		m.MediaFileLinkTypeCode,
 		m.MediaFileLink)
@@ -352,46 +347,41 @@ func xmlElementMediaFile(id string, m *MediaFile) {
 }
 
 func xmlElementImprint(id string, i *Imprint) {
-	createTable(i)
-	insertStmt := getInsertStmt(i)
-	_, stmtErr := insertStmt.Exec(
-		id,
+	iSql := getInsertStmt(i)
+	_, stmtErr := dbCon.Exec(
+		iSql, id,
 		i.ImprintName)
 	handleErr(stmtErr)
 }
 
 func xmlElementPublisher(id string, p *Publisher) {
-	createTable(p)
-	insertStmt := getInsertStmt(p)
-	_, stmtErr := insertStmt.Exec(
-		id,
+	iSql := getInsertStmt(p)
+	_, stmtErr := dbCon.Exec(
+		iSql, id,
 		p.PublishingRole,
 		p.PublisherName)
 	handleErr(stmtErr)
 }
 func xmlElementSalesRights(id string, s *SalesRights) {
-	createTable(s)
-	insertStmt := getInsertStmt(s)
-	_, stmtErr := insertStmt.Exec(
-		id,
+	iSql := getInsertStmt(s)
+	_, stmtErr := dbCon.Exec(
+		iSql, id,
 		s.SalesRightsType,
 		s.RightsCountry)
 	handleErr(stmtErr)
 }
 func xmlElementSalesRestriction(id string, s *SalesRestriction) {
-	createTable(s)
-	insertStmt := getInsertStmt(s)
-	_, stmtErr := insertStmt.Exec(
-		id,
+	iSql := getInsertStmt(s)
+	_, stmtErr := dbCon.Exec(
+		iSql, id,
 		s.SalesRestrictionType)
 	handleErr(stmtErr)
 }
 
 func xmlElementMeasure(id string, m *Measure) {
-	createTable(m)
-	insertStmt := getInsertStmt(m)
-	_, stmtErr := insertStmt.Exec(
-		id,
+	iSql := getInsertStmt(m)
+	_, stmtErr := dbCon.Exec(
+		iSql, id,
 		m.MeasureTypeCode,
 		m.Measurement,
 		m.MeasureUnitCode)
@@ -399,22 +389,19 @@ func xmlElementMeasure(id string, m *Measure) {
 }
 
 func xmlElementRelatedProduct(id string, r *RelatedProduct) {
-	createTable(r)
-	insertStmt := getInsertStmt(r)
-	_, stmtErr := insertStmt.Exec(
-		id,
+	iSql := getInsertStmt(r)
+	_, stmtErr := dbCon.Exec(
+		iSql, id,
 		r.RelationCode,
 		r.ProductIDType,
 		r.IDValue)
 	handleErr(stmtErr)
 }
 
-
 func xmlElementSupplyDetail(id string, s *SupplyDetail) {
-	createTable(s)
-	insertStmt := getInsertStmt(s)
-	_, stmtErr := insertStmt.Exec(
-		id,
+	iSql := getInsertStmt(s)
+	_, stmtErr := dbCon.Exec(
+		iSql, id,
 		s.SupplierName,
 		s.SupplierRole,
 		s.SupplyToCountry,
@@ -435,10 +422,9 @@ func xmlElementSupplyDetail(id string, s *SupplyDetail) {
 }
 
 func xmlElementSupplyDetailPrice(id string, supplierName string, p *Price) {
-	createTable(p)
-	insertStmt := getInsertStmt(p)
-	_, stmtErr := insertStmt.Exec(
-		id,
+	iSql := getInsertStmt(p)
+	_, stmtErr := dbCon.Exec(
+		iSql, id,
 		supplierName,
 		p.PriceTypeCode,
 		p.DiscountCodeType,
@@ -450,13 +436,25 @@ func xmlElementSupplyDetailPrice(id string, supplierName string, p *Price) {
 }
 
 func xmlElementMarketRepresentation(id string, m *MarketRepresentation) {
-	createTable(m)
-	insertStmt := getInsertStmt(m)
-	_, stmtErr := insertStmt.Exec(
-		id,
+	iSql := getInsertStmt(m)
+	_, stmtErr := dbCon.Exec(
+		iSql, id,
 		m.AgentName,
 		m.AgentRole,
 		m.MarketCountry,
 		m.MarketPublishingStatus)
 	handleErr(stmtErr)
+}
+
+func printDuration(timeStart time.Time, currentCount int) {
+	timeEnd := time.Now()
+	duration := timeEnd.Sub(timeStart)
+	memStats := &runtime.MemStats{}
+	runtime.ReadMemStats(memStats)
+	mem := float64(memStats.Alloc) / 1024 / 1024
+	log.Printf("%v Processed: %d, GoRoutines: %d, Mem alloc: %.2fMB\n",
+		duration,
+		currentCount,
+		runtime.NumGoroutine(),
+		mem)
 }

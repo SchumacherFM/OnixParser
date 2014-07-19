@@ -24,13 +24,8 @@ import (
 	"log"
 )
 
-type tableColumn struct {
-	Table, Column string
-}
-
 var (
 	tablePrefix string
-	tableColumns = make(map[tableColumn]bool) // key table,column name = value bool
 )
 
 func SetTablePrefix(prefix string) {
@@ -73,13 +68,9 @@ func getSqlConfigFromStruct(val reflect.Value, cacheKey string) *typeInfo {
 	return tinfo
 }
 
-// @todo refactor and use reflext.Value instead of crap interface
+// @todo refactor and use reflext.Value instead of interface
 func GetCreateTableByStruct(anyStruct interface{}) (string) {
 	tableName, reflectValue := getTableName(anyStruct)
-
-	if true == tableIsCreated(tableName) {
-		return ""
-	}
 
 	columnDefinitions := getSqlConfigFromStruct(reflectValue, tableName)
 
@@ -90,21 +81,9 @@ func GetCreateTableByStruct(anyStruct interface{}) (string) {
 	for i := 0; i < len(columnDefinitions.fields); i++ {
 		col := columnDefinitions.fields[i]
 		columns = append(columns, "\t`"+col.name+"` "+col.colType)
-		tableColumnAdd(tableName, col.name)
 	}
 	columns = append(columns, "\tKEY (`id`)")
 	return createTable + " (\n" + strings.Join(columns, ",\n") + "\n) ENGINE=InnoDB DEFAULT CHARSET=utf8;"
-}
-
-func tableColumnAdd(tableName string, columnName string) {
-	tableColumns[tableColumn{tableName, ""}] = true
-	tableColumns[tableColumn{tableName, columnName}] = true
-}
-
-func tableIsCreated(tableName string) bool {
-	t := tableColumn{tableName, ""}
-	_, isSet := tableColumns[t]
-	return isSet
 }
 
 func GetInsertTableByStruct(anyStruct interface{}) (string) {

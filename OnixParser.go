@@ -28,6 +28,8 @@ import (
 	"log"
 	"net/url"
 	"time"
+	"runtime"
+	"os"
 )
 
 var (
@@ -57,6 +59,8 @@ func getConnection() *sql.DB {
 				*dbHost,
 				*dbDb))
 		handleErr(dbConErr)
+		dbCon.SetMaxIdleConns(5)
+		dbCon.SetMaxOpenConns(5)
 		// why is defer close not working here?
 	}
 	return dbCon
@@ -100,6 +104,10 @@ func printDuration(timeStart time.Time) {
 
 func main() {
 	timeStart := time.Now()
+	if "" == os.Getenv("GOMAXPROCS") {
+		runtime.GOMAXPROCS(runtime.NumCPU())
+	}
+
 	fmt.Println("OnixParser Copyright (C) 2014 Cyrill AT Schumacher dot fm")
 	fmt.Println("This program comes with ABSOLUTELY NO WARRANTY; License: http://www.gnu.org/copyleft/gpl.html")
 	flag.Parse()
