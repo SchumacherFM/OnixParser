@@ -250,7 +250,9 @@ func xmlElementTitle(id string, t *Title) {
 	_, stmtErr := insertStmt.Exec(
 		id,
 		t.TitleType,
-		t.TitleText)
+		t.TitleText,
+		t.TitlePrefix,
+		t.TitleWithoutPrefix)
 	handleErr(stmtErr)
 }
 
