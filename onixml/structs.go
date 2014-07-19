@@ -79,18 +79,26 @@ type (
 		IDValue       string `xml:"RelatedProduct>ProductIdentifier>IDValue" sql:"bigint(15) NOT NULL"`
 	}
 
+	Price struct {
+		SupplierName         string   `sql:"varchar(255) NOT NULL"` // only used in SQL table
+		PriceTypeCode        int     `xml:"PriceTypeCode" sql:"int(10) NOT NULL DEFAULT 0"`
+		DiscountCodeType     int     `xml:"DiscountCoded>DiscountCodeType" sql:"int(10) NOT NULL DEFAULT 0"`
+		DiscountCode         string  `xml:"DiscountCoded>DiscountCode" sql:"varchar(10)  NULL"`
+		PriceAmount          float32 `xml:"PriceAmount" sql:"decimal(10,2) NOT NULL DEFAULT 0"`
+		CurrencyCode         string  `xml:"CurrencyCode" sql:"varchar(10) NULL"`
+		CountryCode          string  `xml:"CountryCode" sql:"varchar(10) NULL"`
+	}
+
 	SupplyDetail struct {
-		SupplierName        string  `xml:"SupplyDetail>SupplierName" sql:"varchar(255) NULL"`
-		SupplierRole        int     `xml:"SupplyDetail>SupplierRole" sql:"int(10) NOT NULL DEFAULT 0"`
-		SupplyToCountry     string  `xml:"SupplyDetail>SupplyToCountry" sql:"varchar(255) NULL"`
-		ProductAvailability int     `xml:"SupplyDetail>ProductAvailability" sql:"int(10) NOT NULL DEFAULT 0"`
-		OnHand              int     `xml:"SupplyDetail>Stock>OnHand" sql:"int(10) NOT NULL DEFAULT 0"`
-		OnOrder             int     `xml:"SupplyDetail>Stock>OnOrder" sql:"int(10) NOT NULL DEFAULT 0"`
-		PackQuantity        int     `xml:"SupplyDetail>PackQuantity" sql:"int(10) NOT NULL DEFAULT 0"`
-		PriceTypeCode       int     `xml:"SupplyDetail>Price>PriceTypeCode" sql:"int(10) NOT NULL DEFAULT 0"`
-		PriceAmount         float32 `xml:"SupplyDetail>Price>PriceAmount" sql:"decimal(10,2) NOT NULL DEFAULT 0"`
-		CurrencyCode        string  `xml:"SupplyDetail>Price>CurrencyCode" sql:"varchar(10) NULL"`
-		CountryCode         string  `xml:"SupplyDetail>Price>CountryCode" sql:"varchar(10) NULL"`
+		SupplierName         string  `xml:"SupplierName" sql:"varchar(255) NOT NULL"`
+		SupplierRole         int     `xml:"SupplierRole" sql:"int(10) NOT NULL DEFAULT 0"`
+		SupplyToCountry      string  `xml:"SupplyToCountry" sql:"varchar(255) NULL"`
+		ProductAvailability  int     `xml:"ProductAvailability" sql:"int(10) NOT NULL DEFAULT 0"`
+		ExpectedShipDate     string  `xml:"ExpectedShipDate" sql:"date NULL"`
+		OnHand               int     `xml:"Stock>OnHand" sql:"int(10) NOT NULL DEFAULT 0"`
+		OnOrder              int     `xml:"Stock>OnOrder" sql:"int(10) NOT NULL DEFAULT 0"`
+		PackQuantity         int     `xml:"PackQuantity" sql:"int(10) NOT NULL DEFAULT 0"`
+		Price                []Price
 	}
 
 	MarketRepresentation struct {
@@ -127,7 +135,7 @@ type (
 		YearFirstPublished string `xml:"YearFirstPublished" sql:"varchar(255) NULL"`
 		Measure
 		RelatedProduct
-		SupplyDetail
+		SupplyDetail    []SupplyDetail
 		MarketRepresentation
 	}
 )

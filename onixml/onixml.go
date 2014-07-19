@@ -149,7 +149,6 @@ func parseXmlElements(prod *Product) {
 		}
 	}
 
-
 	if prod.MediaFile.MediaFileTypeCode > 0 {
 		xmlElementMediaFile(prod.RecordReference, &prod.MediaFile)
 	}
@@ -171,8 +170,13 @@ func parseXmlElements(prod *Product) {
 	if prod.RelatedProduct.ProductIDType > 0 {
 		xmlElementRelatedProduct(prod.RecordReference, &prod.RelatedProduct)
 	}
-	if "" != prod.SupplyDetail.SupplierName {
-		xmlElementSupplyDetail(prod.RecordReference, &prod.SupplyDetail)
+
+	if len(prod.SupplyDetail) > 0 {
+		for _, prodSupplyDetail := range prod.SupplyDetail {
+			if "" != prodSupplyDetail.SupplierName {
+				xmlElementSupplyDetail(prod.RecordReference, &prodSupplyDetail)
+			}
+		}
 	}
 	if "" != prod.MarketRepresentation.AgentName {
 		xmlElementMarketRepresentation(prod.RecordReference, &prod.MarketRepresentation)
@@ -391,13 +395,33 @@ func xmlElementSupplyDetail(id string, s *SupplyDetail) {
 		s.SupplierRole,
 		s.SupplyToCountry,
 		s.ProductAvailability,
+		s.ExpectedShipDate,
 		s.OnHand,
 		s.OnOrder,
-		s.PackQuantity,
-		s.PriceTypeCode,
-		s.PriceAmount,
-		s.CurrencyCode,
-		s.CountryCode)
+		s.PackQuantity)
+	handleErr(stmtErr)
+
+	if len(s.Price) > 0 {
+		for _, sPrice := range s.Price {
+			if sPrice.PriceTypeCode > 0 {
+				xmlElementSupplyDetailPrice(id, s.SupplierName, &sPrice)
+			}
+		}
+	}
+}
+
+func xmlElementSupplyDetailPrice(id string, supplierName string, p *Price) {
+	createTable(p)
+	insertStmt := getInsertStmt(p)
+	_, stmtErr := insertStmt.Exec(
+		id,
+		supplierName,
+		p.PriceTypeCode,
+		p.DiscountCodeType,
+		p.DiscountCode,
+		p.PriceAmount,
+		p.CurrencyCode,
+		p.CountryCode)
 	handleErr(stmtErr)
 }
 
