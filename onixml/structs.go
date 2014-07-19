@@ -18,7 +18,10 @@
 */
 
 package onixml
-
+/*
+	not all types are matched
+	http://www.editeur.org/onix/2.1/02/reference/onix-international.dtd
+*/
 type (
 	ProductIdentifier struct {
 		ProductIDType int    `xml:"ProductIDType" sql:"bigint(14)"`
@@ -44,6 +47,7 @@ type (
 		SequenceNumber     int    `xml:"SequenceNumber" sql:"int(10) NOT NULL"`
 		ContributorRole    string `xml:"ContributorRole" sql:"varchar(255) NULL"`
 		PersonNameInverted string `xml:"PersonNameInverted" sql:"varchar(255) NULL"`
+		TitlesBeforeNames  string `xml:"TitlesBeforeNames" sql:"varchar(255) NULL"`
 		KeyNames           string `xml:"KeyNames" sql:"varchar(255) NULL"`
 	}
 
@@ -139,11 +143,12 @@ type (
 		Contributor []Contributor
 		Subject     []Subject
 		Extent
-		EditionNumber  string `xml:"EditionNumber" sql:"varchar(255) NULL"`
-		NumberOfPages  string `xml:"NumberOfPages" sql:"int(10) NOT NULL DEFAULT 0"`
-		BICMainSubject string `xml:"BICMainSubject" sql:"varchar(20) NULL"`
-		OtherText      []OtherText
-		AudienceCode   int `xml:"AudienceCode" sql:"int(10) NOT NULL DEFAULT 0"`
+		EditionNumber      string `xml:"EditionNumber" sql:"varchar(255) NULL"`
+		NumberOfPages      string `xml:"NumberOfPages" sql:"int(10) NOT NULL DEFAULT 0"`
+		IllustrationsNote  string `xml:"NumberOfPages" sql:"varchar(255) NULL"`
+		BICMainSubject     string `xml:"BICMainSubject" sql:"varchar(20) NULL"`
+		OtherText          []OtherText
+		AudienceCode       int `xml:"AudienceCode" sql:"int(10) NOT NULL DEFAULT 0"`
 		MediaFile
 		Imprint
 		Publisher

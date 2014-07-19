@@ -244,6 +244,7 @@ func xmlElementProduct(prod *Product) {
 		prod.ProductFormDetail,
 		prod.EditionNumber,
 		strings.Replace(prod.NumberOfPages, ",", "", -1),
+		prod.IllustrationsNote,
 		prod.BICMainSubject,
 		prod.AudienceCode,
 		prod.PublishingStatus,
@@ -303,6 +304,7 @@ func xmlElementContributor(id string, c *Contributor) {
 		c.SequenceNumber,
 		c.ContributorRole,
 		c.PersonNameInverted,
+		c.TitlesBeforeNames,
 		c.KeyNames)
 	handleErr(stmtErr)
 }
