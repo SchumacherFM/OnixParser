@@ -11,8 +11,8 @@ type (
 	Title struct {
 		TitleType          int    `xml:"Title>TitleType" sql:"int(10) NOT NULL"`
 		TitleText          string `xml:"Title>TitleText" sql:"varchar(255) NULL"`
-		TitlePrefix        string `xml:"Title>TitleText" sql:"varchar(255) NULL"`
-		TitleWithoutPrefix string `xml:"Title>TitleText" sql:"varchar(255) NULL"`
+		TitlePrefix        string `xml:"Title>TitlePrefix" sql:"varchar(255) NULL"`
+		TitleWithoutPrefix string `xml:"Title>TitleWithoutPrefix" sql:"varchar(255) NULL"`
 	}
 	Series struct {
 		TitleOfSeries      string `xml:"Series>TitleOfSeries" sql:"varchar(255) NULL"`
