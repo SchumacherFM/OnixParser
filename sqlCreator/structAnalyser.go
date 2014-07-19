@@ -73,9 +73,7 @@ func getTypeInfo(typ reflect.Type) (*typeInfo, error) {
 			tinfo.structName = typ.Name()
 
 			// Add the field if it doesn't conflict with other fields.
-			if err := addFieldInfo(typ, tinfo, finfo); err != nil {
-				return nil, err
-			}
+			tinfo.fields = append(tinfo.fields, *finfo)
 		}
 	}
 	tinfoLock.Lock()
@@ -100,20 +98,6 @@ func min(a, b int) int {
 		return a
 	}
 	return b
-}
-
-// addFieldInfo adds finfo to tinfo.fields if there are no
-// conflicts, or if conflicts arise from previous fields that were
-// obtained from deeper embedded structures than finfo. In the latter
-// case, the conflicting entries are dropped.
-// A conflict occurs when the path (parent + name) to a field is
-// itself a prefix of another path, or when two paths match exactly.
-// It is okay for field paths to share a common, shorter prefix.
-func addFieldInfo(typ reflect.Type, tinfo *typeInfo, newf *fieldInfo) error {
-
-	tinfo.fields = append(tinfo.fields, *newf)
-	return nil
-
 }
 
 // value returns v's field value corresponding to finfo.
