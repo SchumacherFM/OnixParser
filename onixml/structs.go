@@ -18,11 +18,16 @@
 */
 
 package onixml
+
 /*
 	not all types are matched
 	http://www.editeur.org/onix/2.1/02/reference/onix-international.dtd
 */
 type (
+	iXmlElementToDb interface {
+		writeToDb(id string)
+	}
+
 	ProductIdentifier struct {
 		ProductIDType int    `xml:"ProductIDType" sql:"bigint(14)"`
 		IDValue       string `xml:"IDValue" sql:"varchar(255) NULL"`

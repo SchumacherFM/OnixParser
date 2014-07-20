@@ -39,6 +39,7 @@ var (
 	dbUser      = flag.String("user", "test", "MySQL user name")
 	dbPass      = flag.String("pass", "test", "MySQL password")
 	tablePrefix = flag.String("tablePrefix", "gonix_", "Table name prefix")
+	verbose     = flag.Bool("v", false, "Increase verbosity")
 	dbCon       *sql.DB
 	tablesInDb  = make(map[string]string)
 )
@@ -46,6 +47,12 @@ var (
 func handleErr(theErr error) {
 	if nil != theErr {
 		log.Fatal(theErr.Error())
+	}
+}
+
+func logger(format string, v ...interface{}) {
+	if *verbose {
+		log.Printf(format, v...)
 	}
 }
 
@@ -60,7 +67,7 @@ func getConnection() *sql.DB {
 				*dbDb))
 		handleErr(dbConErr)
 		dbCon.SetMaxIdleConns(5)
-		dbCon.SetMaxOpenConns(5)
+		dbCon.SetMaxOpenConns(19) // amount of structs
 		// why is defer close not working here?
 	}
 	return dbCon
@@ -91,15 +98,15 @@ func initDatabase() {
 			_, err := getConnection().Exec("DROP TABLE " + sqlCreator.QuoteInto(table))
 			handleErr(err)
 		}
-		log.Printf("Dropped %d existing tables", len(tablesInDb))
+		logger("Dropped %d existing tables", len(tablesInDb))
 	}
 }
 
 func printDuration(timeStart time.Time) {
 	timeEnd := time.Now()
 	duration := timeEnd.Sub(timeStart)
-	log.Printf("XML Parser took %dh %dm %fs to run.\n", int(duration.Hours()), int(duration.Minutes()), duration.Seconds())
-	log.Printf("XML Parser took %v to run.\n", duration)
+	logger("XML Parser took %dh %dm %fs to run.\n", int(duration.Hours()), int(duration.Minutes()), duration.Seconds())
+	logger("XML Parser took %v to run.\n", duration)
 }
 
 func main() {
@@ -112,13 +119,13 @@ func main() {
 	fmt.Println("This program comes with ABSOLUTELY NO WARRANTY; License: http://www.gnu.org/copyleft/gpl.html")
 	flag.Parse()
 	initDatabase()
-
+	onixml.Verbose = verbose // cough cough
 	onixml.SetConnection(getConnection())
 	onixml.SetTablePrefix(*tablePrefix)
 	total, totalErr := onixml.OnixmlDecode(*inputFile)
 
-	log.Printf("Total articles: %d \n", total)
-	log.Printf("Total errors: %d \n", totalErr)
+	logger("Total articles: %d \n", total)
+	logger("Total errors: %d \n", totalErr)
 	getConnection().Close()
 	printDuration(timeStart)
 }

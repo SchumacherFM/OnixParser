@@ -25,7 +25,6 @@ import (
 	"log"
 	"os"
 	"reflect"
-	"strings"
 	"sync" // for concurrency
 	"time"
 	"runtime"
@@ -34,6 +33,7 @@ import (
 var (
 	dbCon              *sql.DB
 	tablePrefix        string
+	Verbose *bool
 )
 
 func SetConnection(aCon *sql.DB) {
@@ -50,6 +50,12 @@ func handleErr(theErr error) {
 	}
 }
 
+func logger(format string, v ...interface{}) {
+	if *Verbose {
+		log.Printf(format, v...)
+	}
+}
+
 func OnixmlDecode(inputFile string) (int, int) {
 
 	sqlCreator.SetTablePrefix(tablePrefix)
@@ -60,7 +66,7 @@ func OnixmlDecode(inputFile string) (int, int) {
 	xmlStat, err := xmlFile.Stat()
 	handleErr(err)
 	if true == xmlStat.IsDir() {
-		log.Printf("%s is a directory ...\n", inputFile)
+		logger("%s is a directory ...\n", inputFile)
 		return -1, -1
 	}
 
@@ -90,7 +96,7 @@ func OnixmlDecode(inputFile string) (int, int) {
 				// variable prod which is a Product (se above)
 				decErr := decoder.DecodeElement(&prod, &se)
 				if nil != decErr {
-					log.Printf("Decode Error, Type mismatch: %v\n%v\n", prod, decErr)
+					logger("Decode Error, Type mismatch: %v\n%v\n", prod, decErr)
 					totalErr++
 				}
 				wg.Add(1)
@@ -105,8 +111,15 @@ func OnixmlDecode(inputFile string) (int, int) {
 		default:
 		}
 	}
-	log.Print("Jepoardy theme song. Waiting for GoRoutines to finish ...")
-	wg.Wait() // wait for the goroutines to finish
+	c := time.Tick(10 * time.Second) // every 10 seconds
+	for now := range c {
+		numRoutines := runtime.NumGoroutine()
+		logger("%d child processes remaining ... %v", numRoutines, now)
+		if numRoutines < 10 {
+			break;
+		}
+	}
+	wg.Wait() // wait for the goroutines to finish, is that now redundant regarding the infinite for loop?
 
 	return total, totalErr
 }
@@ -158,43 +171,39 @@ func getInsertStmt(anyStruct interface{}) string {
 }
 
 func parseXmlElementsConcurrent(prod *Product, sharedDbCon *sql.DB, wg *sync.WaitGroup) {
-	dbCon = sharedDbCon // as we are in another thread set the dbCon new
+	SetConnection(sharedDbCon)  // as we are in another thread set the dbCon new
 	defer wg.Done()
 
-	xmlElementProduct(prod)
+	prod.writeToDb("")
 
 	if len(prod.ProductIdentifier) > 0 {
 		for _, prodIdentifier := range prod.ProductIdentifier {
-			xmlElementProductIdentifier(prod.RecordReference, &prodIdentifier)
+			prodIdentifier.writeToDb(prod.RecordReference)
 		}
 	}
-	if prod.Title.TitleType > 0 {
-		xmlElementTitle(prod.RecordReference, &prod.Title)
-	}
-	if "" != prod.Series.TitleOfSeries || "" != prod.Series.NumberWithinSeries {
-		xmlElementSeries(prod.RecordReference, &prod.Series)
-	}
-	if "" != prod.Website.WebsiteLink {
-		xmlElementWebsite(prod.RecordReference, &prod.Website)
-	}
+	prod.Title.writeToDb(prod.RecordReference)
+	prod.Series.writeToDb(prod.RecordReference)
+	prod.Website.writeToDb(prod.RecordReference)
+	prod.Extent.writeToDb(prod.RecordReference)
+
 	if len(prod.Contributor) > 0 {
 		for _, prodContributor := range prod.Contributor {
-			if prodContributor.SequenceNumber > 0 {
-				xmlElementContributor(prod.RecordReference, &prodContributor)
-			}
+			prodContributor.writeToDb(prod.RecordReference)
 		}
-	}
-	if len(prod.Subject) > 0 {
-		for _, prodSubject := range prod.Subject {
-			if prodSubject.SubjectSchemeIdentifier > 0 {
-				xmlElementSubject(prod.RecordReference, &prodSubject)
-			}
-		}
-	}
-	if prod.Extent.ExtentType > 0 {
-		xmlElementExtent(prod.RecordReference, &prod.Extent)
 	}
 
+	if len(prod.Subject) > 0 {
+		for _, prodSubject := range prod.Subject {
+			prodSubject.writeToDb(prod.RecordReference)
+		}
+	}
+	if len(prod.SupplyDetail) > 0 {
+		for _, prodSupplyDetail := range prod.SupplyDetail {
+			prodSupplyDetail.writeToDb(prod.RecordReference)
+		}
+	}
+
+	// @todo convert all other methods here to struct based ones
 	if len(prod.OtherText) > 0 {
 		for _, prodOtherText := range prod.OtherText {
 			if prodOtherText.TextTypeCode > 0 {
@@ -224,112 +233,9 @@ func parseXmlElementsConcurrent(prod *Product, sharedDbCon *sql.DB, wg *sync.Wai
 	if prod.RelatedProduct.ProductIDType > 0 {
 		xmlElementRelatedProduct(prod.RecordReference, &prod.RelatedProduct)
 	}
-
-	if len(prod.SupplyDetail) > 0 {
-		for _, prodSupplyDetail := range prod.SupplyDetail {
-			if "" != prodSupplyDetail.SupplierName {
-				xmlElementSupplyDetail(prod.RecordReference, &prodSupplyDetail)
-			}
-		}
-	}
 	if "" != prod.MarketRepresentation.AgentName {
 		xmlElementMarketRepresentation(prod.RecordReference, &prod.MarketRepresentation)
 	}
-}
-
-
-func xmlElementProduct(prod *Product) {
-	iSql := getInsertStmt(prod)
-	// _, stmtErr := insertStmt.Exec.Call(prod) => that would be nice ... but how?
-	// static typed language and that would cost performance
-	/* sometimes number can be 1,234 */
-	// avoiding reflection
-	_, stmtErr := dbCon.Exec(
-		iSql,
-		prod.RecordReference,
-		prod.RecordReference,
-		prod.NotificationType,
-		prod.ProductForm,
-		prod.ProductFormDetail,
-		prod.EditionNumber,
-		strings.Replace(prod.NumberOfPages, ",", "", -1),
-		prod.IllustrationsNote,
-		prod.BICMainSubject,
-		prod.AudienceCode,
-		prod.PublishingStatus,
-		prod.PublicationDate,
-		prod.YearFirstPublished)
-	handleErr(stmtErr)
-
-}
-
-func xmlElementProductIdentifier(id string, p *ProductIdentifier) {
-	iSql := getInsertStmt(p)
-	_, stmtErr := dbCon.Exec(
-		iSql,
-		id,
-		p.ProductIDType,
-		p.IDValue)
-	handleErr(stmtErr)
-}
-
-func xmlElementTitle(id string, t *Title) {
-	iSql := getInsertStmt(t)
-	_, stmtErr := dbCon.Exec(
-		iSql, id,
-		t.TitleType,
-		t.TitleText,
-		t.TitlePrefix,
-		t.TitleWithoutPrefix)
-	handleErr(stmtErr)
-}
-
-func xmlElementSeries(id string, s *Series) {
-	iSql := getInsertStmt(s)
-	_, stmtErr := dbCon.Exec(
-		iSql, id,
-		s.TitleOfSeries,
-		s.NumberWithinSeries)
-	handleErr(stmtErr)
-}
-
-func xmlElementWebsite(id string, w *Website) {
-	iSql := getInsertStmt(w)
-	_, stmtErr := dbCon.Exec(
-		iSql, id,
-		w.WebsiteLink)
-	handleErr(stmtErr)
-}
-
-func xmlElementContributor(id string, c *Contributor) {
-	iSql := getInsertStmt(c)
-	_, stmtErr := dbCon.Exec(
-		iSql, id,
-		c.SequenceNumber,
-		c.ContributorRole,
-		c.PersonNameInverted,
-		c.TitlesBeforeNames,
-		c.KeyNames)
-	handleErr(stmtErr)
-}
-
-func xmlElementSubject(id string, s *Subject) {
-	iSql := getInsertStmt(s)
-	_, stmtErr := dbCon.Exec(
-		iSql, id,
-		s.SubjectSchemeIdentifier,
-		s.SubjectCode)
-	handleErr(stmtErr)
-}
-
-func xmlElementExtent(id string, e *Extent) {
-	iSql := getInsertStmt(e)
-	_, stmtErr := dbCon.Exec(
-		iSql, id,
-		e.ExtentType,
-		e.ExtentValue,
-		e.ExtentUnit)
-	handleErr(stmtErr)
 }
 
 func xmlElementOtherText(id string, o *OtherText) {
@@ -403,29 +309,6 @@ func xmlElementRelatedProduct(id string, r *RelatedProduct) {
 	handleErr(stmtErr)
 }
 
-func xmlElementSupplyDetail(id string, s *SupplyDetail) {
-	iSql := getInsertStmt(s)
-	_, stmtErr := dbCon.Exec(
-		iSql, id,
-		s.SupplierName,
-		s.SupplierRole,
-		s.SupplyToCountry,
-		s.ProductAvailability,
-		s.ExpectedShipDate,
-		s.OnHand,
-		s.OnOrder,
-		s.PackQuantity)
-	handleErr(stmtErr)
-
-	if len(s.Price) > 0 {
-		for _, sPrice := range s.Price {
-			if sPrice.PriceTypeCode > 0 {
-				xmlElementSupplyDetailPrice(id, s.SupplierName, &sPrice)
-			}
-		}
-	}
-}
-
 func xmlElementSupplyDetailPrice(id string, supplierName string, p *Price) {
 	iSql := getInsertStmt(p)
 	_, stmtErr := dbCon.Exec(
@@ -457,7 +340,7 @@ func printDuration(timeStart time.Time, currentCount int) {
 	memStats := &runtime.MemStats{}
 	runtime.ReadMemStats(memStats)
 	mem := float64(memStats.Alloc) / 1024 / 1024
-	log.Printf("%v Processed: %d, GoRoutines: %d, Mem alloc: %.2fMB\n",
+	logger("%v Processed: %d, child processes: %d, Mem alloc: %.2fMB\n",
 		duration,
 		currentCount,
 		runtime.NumGoroutine(),
