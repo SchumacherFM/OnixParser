@@ -27,7 +27,7 @@ import (
 	"strings"
 	"../sqlCreator"
 	"log"
-	"fmt"
+	"runtime"
 )
 
 type tableColumn struct {
@@ -38,8 +38,14 @@ var (
 	dbCon *sql.DB
 	tablePrefix string
 	preparedInsertStmt = make(map[string]*sql.Stmt)
+	Verbose *bool
 )
 
+func logger(format string, v ...interface{}) {
+	if *Verbose {
+		log.Printf(format, v...)
+	}
+}
 func SetConnection(aCon *sql.DB) {
 	dbCon = aCon
 }
@@ -56,7 +62,10 @@ func handleErr(theErr error) {
 func printDuration(timeStart time.Time, objectCount int, currentCount int) {
 	timeEnd := time.Now()
 	duration := timeEnd.Sub(timeStart)
-	log.Printf("%v for %d entities. Processed %d\n", duration, objectCount, currentCount)
+	memStats := &runtime.MemStats{}
+	runtime.ReadMemStats(memStats)
+	mem := float64(memStats.Sys) / 1024 / 1024
+	logger("%v for %d entities. Processed %d, Mem alloc: %.2fMB\n", duration, objectCount, currentCount, mem)
 }
 
 
@@ -93,7 +102,7 @@ func OnixmlDecode(inputFile string) (int, int) {
 				// variable prod which is a Product (se above)
 				decErr := decoder.DecodeElement(&prod, &se)
 				if nil != decErr {
-					log.Printf("Decode Error, Type mismatch: %v\n", prod)
+					logger("Decode Error, Type mismatch: %v\n", prod)
 					totalErr++
 				}
 
@@ -119,10 +128,6 @@ func OnixmlDecode(inputFile string) (int, int) {
 	}
 
 	return total, totalErr
-}
-
-func printSomething(prod *Product) {
-	fmt.Printf("%v\n", prod)
 }
 
 func parseXmlElements(prod *Product) {

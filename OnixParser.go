@@ -37,9 +37,16 @@ var (
 	dbUser      = flag.String("user", "test", "MySQL user name")
 	dbPass      = flag.String("pass", "test", "MySQL password")
 	tablePrefix = flag.String("tablePrefix", "gonix_", "Table name prefix")
+	verbose     = flag.Bool("v", false, "Increase Verbosity")
 	dbCon       *sql.DB
 	tablesInDb  = make(map[string]string)
 )
+
+func logger(format string, v ...interface{}) {
+	if *verbose {
+		log.Printf(format, v...)
+	}
+}
 
 func handleErr(theErr error) {
 	if nil != theErr {
@@ -87,15 +94,15 @@ func initDatabase() {
 			_, err := getConnection().Exec("DROP TABLE " + sqlCreator.QuoteInto(table))
 			handleErr(err)
 		}
-		log.Printf("Dropped %d existing tables", len(tablesInDb))
+		logger("Dropped %d existing tables", len(tablesInDb))
 	}
 }
 
 func printDuration(timeStart time.Time) {
 	timeEnd := time.Now()
 	duration := timeEnd.Sub(timeStart)
-	log.Printf("XML Parser took %dh %dm %fs to run.\n", int(duration.Hours()), int(duration.Minutes()), duration.Seconds())
-	log.Printf("XML Parser took %v to run.\n", duration)
+	logger("XML Parser took %dh %dm %fs to run.\n", int(duration.Hours()), int(duration.Minutes()), duration.Seconds())
+	logger("XML Parser took %v to run.\n", duration)
 }
 
 func main() {
@@ -104,7 +111,7 @@ func main() {
 	fmt.Println("This program comes with ABSOLUTELY NO WARRANTY; License: http://www.gnu.org/copyleft/gpl.html")
 	flag.Parse()
 	initDatabase()
-
+	onixml.Verbose = verbose
 	onixml.SetConnection(getConnection())
 	onixml.SetTablePrefix(*tablePrefix)
 	total, totalErr := onixml.OnixmlDecode(*inputFile)
