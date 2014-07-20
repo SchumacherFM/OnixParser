@@ -57,6 +57,13 @@ func OnixmlDecode(inputFile string) (int, int) {
 	totalErr := 0
 	xmlFile, err := os.Open(inputFile)
 	handleErr(err)
+	xmlStat, err := xmlFile.Stat()
+	handleErr(err)
+	if true == xmlStat.IsDir() {
+		log.Printf("%s is a directory ...\n", inputFile)
+		return -1, -1
+	}
+
 	defer xmlFile.Close()
 	decoder := xml.NewDecoder(xmlFile)
 	createTables()
@@ -145,8 +152,6 @@ func getNameOfStruct(anyStruct interface{}) string {
 	typeOfAnyStruct := s.Type()
 	return typeOfAnyStruct.Name()
 }
-
-
 
 func getInsertStmt(anyStruct interface{}) string {
 	return sqlCreator.GetInsertTableByStruct(anyStruct)
