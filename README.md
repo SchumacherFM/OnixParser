@@ -90,6 +90,8 @@ This program comes with ABSOLUTELY NO WARRANTY; License: http://www.gnu.org/copy
 2014/07/20 12:54:00 XML Parser took 6m11.544931728s to run.
 ```
 
+Duration for the concurrent parser: `2m49s`.
+
 # PHP
 
 see onixSQL.php
