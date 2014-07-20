@@ -27,22 +27,35 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"net/url"
-	"time"
-	"runtime"
 	"os"
+	"runtime"
+	"time"
 )
 
-var (
-	inputFile   = flag.String("infile", "demo-availability.xml", "Input file path")
-	dbHost      = flag.String("host", "127.0.0.1", "MySQL host name")
-	dbDb        = flag.String("db", "test", "MySQL db name")
-	dbUser      = flag.String("user", "test", "MySQL user name")
-	dbPass      = flag.String("pass", "test", "MySQL password")
-	tablePrefix = flag.String("tablePrefix", "gonix_", "Table name prefix")
-	verbose     = flag.Bool("v", false, "Increase verbosity")
+type appConfiguration struct {
+	inputFile   *string
+	dbHost      *string
+	dbDb        *string
+	dbUser      *string
+	dbPass      *string
+	tablePrefix *string
+	verbose     *bool
 	dbCon       *sql.DB
-	tablesInDb  = make(map[string]string)
-)
+	maxLoadAvg  *float64
+	maxOpenCon  *int
+}
+
+var appConfig = appConfiguration{
+	inputFile:   flag.String("infile", "", "Input file path"),
+	dbHost:      flag.String("host", "127.0.0.1", "MySQL host name"),
+	dbDb:        flag.String("db", "test", "MySQL db name"),
+	dbUser:      flag.String("user", "test", "MySQL user name"),
+	dbPass:      flag.String("pass", "test", "MySQL password"),
+	tablePrefix: flag.String("tablePrefix", "gonix_", "Table name prefix"),
+	verbose:     flag.Bool("v", false, "Increase verbosity"),
+	maxLoadAvg:  flag.Float64("mla", 6.5, "Max Load Average, float value. Recommended > 6, if <= 3 then disabled"),
+	maxOpenCon:  flag.Int("moc", 20, "Max MySQL open connections"),
+}
 
 func handleErr(theErr error) {
 	if nil != theErr {
@@ -51,7 +64,7 @@ func handleErr(theErr error) {
 }
 
 func logger(format string, v ...interface{}) {
-	if *verbose {
+	if *appConfig.verbose {
 		log.Printf(format, v...)
 	}
 }
@@ -59,18 +72,18 @@ func logger(format string, v ...interface{}) {
 func getConnection() *sql.DB {
 	var dbConErr error
 
-	if nil == dbCon {
-		dbCon, dbConErr = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s",
-				url.QueryEscape(*dbUser),
-				url.QueryEscape(*dbPass),
-				*dbHost,
-				*dbDb))
+	if nil == appConfig.dbCon {
+		appConfig.dbCon, dbConErr = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s",
+			url.QueryEscape(*appConfig.dbUser),
+			url.QueryEscape(*appConfig.dbPass),
+			*appConfig.dbHost,
+			*appConfig.dbDb))
 		handleErr(dbConErr)
-		dbCon.SetMaxIdleConns(5)
-		dbCon.SetMaxOpenConns(19) // amount of structs
+		appConfig.dbCon.SetMaxIdleConns(5)
+		appConfig.dbCon.SetMaxOpenConns(int(*appConfig.maxOpenCon)) // amount of structs
 		// why is defer close not working here?
 	}
-	return dbCon
+	return appConfig.dbCon
 }
 
 func initDatabase() {
@@ -80,26 +93,21 @@ func initDatabase() {
 
 	// delete already created tables
 	// escape dbdb due to SQL injection
-	columnName := sqlCreator.QuoteInto("Tables_in_" + *dbDb)
-	showQuery := "SHOW TABLES FROM " + sqlCreator.QuoteInto(*dbDb) + " WHERE " + columnName + " LIKE '" + url.QueryEscape(*tablePrefix) + "%'"
+	columnName := sqlCreator.QuoteInto("Tables_in_" + *appConfig.dbDb)
+	showQuery := "SHOW TABLES FROM " + sqlCreator.QuoteInto(*appConfig.dbDb) + " WHERE " + columnName + " LIKE '" + url.QueryEscape(*appConfig.tablePrefix) + "%'"
 	rows, err := getConnection().Query(showQuery)
 	handleErr(err)
 	defer rows.Close()
+	rowCount := 0
 	for rows.Next() { // just for learning purpose otherwise we can directly drop tables here
 		var tableName string
 		err = rows.Scan(&tableName)
-		if err != nil { /* error handling */
-		}
-		tablesInDb[tableName] = tableName
+		handleErr(err)
+		_, err := getConnection().Exec("DROP TABLE " + sqlCreator.QuoteInto(tableName))
+		handleErr(err)
+		rowCount++
 	}
-
-	if len(tablesInDb) > 0 {
-		for table := range tablesInDb {
-			_, err := getConnection().Exec("DROP TABLE " + sqlCreator.QuoteInto(table))
-			handleErr(err)
-		}
-		logger("Dropped %d existing tables", len(tablesInDb))
-	}
+	logger("Dropped %d existing tables", rowCount)
 }
 
 func printDuration(timeStart time.Time) {
@@ -119,12 +127,10 @@ func main() {
 	fmt.Println("This program comes with ABSOLUTELY NO WARRANTY; License: http://www.gnu.org/copyleft/gpl.html")
 	flag.Parse()
 	initDatabase()
-	onixml.Verbose = verbose // cough cough
-	onixml.SetConnection(getConnection())
-	onixml.SetTablePrefix(*tablePrefix)
-	total, totalErr := onixml.OnixmlDecode(*inputFile)
+	onixml.SetAppConfig(appConfig.dbCon, appConfig.tablePrefix, appConfig.inputFile, appConfig.maxLoadAvg, appConfig.verbose)
+	total, totalErr := onixml.OnixmlDecode()
 
-	logger("Total articles: %d \n", total)
+	logger("Total products: %d \n", total)
 	logger("Total errors: %d \n", totalErr)
 	getConnection().Close()
 	printDuration(timeStart)

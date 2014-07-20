@@ -88,6 +88,27 @@ This program comes with ABSOLUTELY NO WARRANTY; License: http://www.gnu.org/copy
 2014/07/20 13:01:17 XML Parser took 2m49.110496443s to run.
 ```
 
+There are severeal options on the command line:
+
+```
+$ go run OnixParser.go -h
+OnixParser Copyright (C) 2014 Cyrill AT Schumacher dot fm
+This program comes with ABSOLUTELY NO WARRANTY; License: http://www.gnu.org/copyleft/gpl.html
+Usage of OnixParser:
+  -db="test": MySQL db name
+  -host="127.0.0.1": MySQL host name
+  -infile="": Input file path
+  -mla=6.5: Max Load Average, float value. Recommended > 6, if <= 3 then disabled
+  -moc=20: Max MySQL open connections
+  -pass="test": MySQL password
+  -tablePrefix="gonix_": Table name prefix
+  -user="test": MySQL user name
+  -v=false: Increase verbosity
+exit status 2
+```
+
+Checking for the Max Load Average means if the Load AVG will be above that value the programm will stop and wait until the Load AVG will fall below that threshold.
+
 # License
 
 General Public License

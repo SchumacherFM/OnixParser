@@ -22,25 +22,27 @@ import (
 	"../sqlCreator"
 	"database/sql"
 	"encoding/xml"
+	"github.com/cloudfoundry/gosigar"
 	"log"
 	"os"
 	"reflect"
+	"runtime"
 	"sync" // for concurrency
 	"time"
-	"runtime"
 )
 
-var (
-	dbCon              *sql.DB
-	tablePrefix        string
-	Verbose *bool
-)
+const MIN_LOAD_AVG = 3 // if lower than this value the feature is disabled and we're run with full power
 
-func SetConnection(aCon *sql.DB) {
-	dbCon = aCon
-}
-func SetTablePrefix(prefix string) {
-	tablePrefix = prefix
+var appConfig = appConfiguration{}
+
+func SetAppConfig(dbCon *sql.DB, tablePrefix *string, inputFile *string, maxLoadAvg *float64, verbose *bool) {
+	appConfig.dbCon = dbCon
+	appConfig.tablePrefix = tablePrefix
+	appConfig.inputFile = inputFile
+	if nil != maxLoadAvg {
+		appConfig.maxLoadAvg = maxLoadAvg
+	}
+	appConfig.verbose = verbose
 }
 
 func handleErr(theErr error) {
@@ -51,22 +53,37 @@ func handleErr(theErr error) {
 }
 
 func logger(format string, v ...interface{}) {
-	if *Verbose {
+	if *appConfig.verbose {
 		log.Printf(format, v...)
 	}
 }
 
-func OnixmlDecode(inputFile string) (int, int) {
+func getLoadAverage() float64 {
+	ccs := sigar.ConcreteSigar{}
 
-	sqlCreator.SetTablePrefix(tablePrefix)
+	lavg, err := ccs.GetLoadAverage()
+	if nil != err {
+		return 0
+	}
+	return lavg.One
+}
+
+func OnixmlDecode() (int, int) {
+	sqlCreator.SetTablePrefix(appConfig.tablePrefix)
 	total := 0
 	totalErr := 0
-	xmlFile, err := os.Open(inputFile)
+
+	if "" == *appConfig.inputFile {
+		logger("Input file is empty\n")
+		return -1, -1
+	}
+
+	xmlFile, err := os.Open(*appConfig.inputFile)
 	handleErr(err)
 	xmlStat, err := xmlFile.Stat()
 	handleErr(err)
 	if true == xmlStat.IsDir() {
-		logger("%s is a directory ...\n", inputFile)
+		logger("%s is a directory ...\n", appConfig.inputFile)
 		return -1, -1
 	}
 
@@ -100,30 +117,45 @@ func OnixmlDecode(inputFile string) (int, int) {
 					totalErr++
 				}
 				wg.Add(1)
-				go parseXmlElementsConcurrent(&prod, dbCon, &wg)
+				go parseXmlElementsConcurrent(&prod, &appConfig, &wg)
 
-				if total > 0 && 0 == total%1000 {
+				if true == *appConfig.verbose && total > 0 && 0 == total%1000 {
 					printDuration(timeStart, total)
 					timeStart = time.Now()
 				}
 				total++
+				handleLoadAverage()
 			}
 		default:
 		}
 	}
+	wg.Wait() // wait for the goroutines to finish, is that now redundant regarding the infinite for loop?
+	return total, totalErr
+}
+
+func handleLoadAverage() {
+	if *appConfig.maxLoadAvg > MIN_LOAD_AVG && getLoadAverage() > *appConfig.maxLoadAvg {
+		c := time.Tick(5 * time.Second)
+		for now := range c {
+			lavg := getLoadAverage()
+			logger("Current Load Average %.2f Should be %.2f ... %v", lavg, *appConfig.maxLoadAvg, now)
+			if lavg < *appConfig.maxLoadAvg {
+				break
+			}
+		}
+	}
+}
+
+func printWaitForGoRoutines() {
 	c := time.Tick(10 * time.Second) // every 10 seconds
 	for now := range c {
 		numRoutines := runtime.NumGoroutine()
 		logger("%d child processes remaining ... %v", numRoutines, now)
 		if numRoutines < 10 {
-			break;
+			break
 		}
 	}
-	wg.Wait() // wait for the goroutines to finish, is that now redundant regarding the infinite for loop?
-
-	return total, totalErr
 }
-
 
 func createTables() {
 
@@ -156,7 +188,7 @@ func createTables() {
 
 func createTable(anyStruct interface{}) {
 	createTable := sqlCreator.GetCreateTableByStruct(anyStruct)
-	_, err := dbCon.Exec(createTable) // instead of .Query because we don't care for result. Exec closes resource
+	_, err := appConfig.dbCon.Exec(createTable) // instead of .Query because we don't care for result. Exec closes resource
 	handleErr(err)
 }
 
@@ -170,8 +202,9 @@ func getInsertStmt(anyStruct interface{}) string {
 	return sqlCreator.GetInsertTableByStruct(anyStruct)
 }
 
-func parseXmlElementsConcurrent(prod *Product, sharedDbCon *sql.DB, wg *sync.WaitGroup) {
-	SetConnection(sharedDbCon)  // as we are in another thread set the dbCon new
+func parseXmlElementsConcurrent(prod *Product, appConfig *appConfiguration, wg *sync.WaitGroup) {
+	// as we are in another thread set the dbCon new
+	SetAppConfig(appConfig.dbCon, appConfig.tablePrefix, appConfig.inputFile, nil, appConfig.verbose)
 	defer wg.Done()
 
 	prod.writeToDb("")
@@ -240,7 +273,7 @@ func parseXmlElementsConcurrent(prod *Product, sharedDbCon *sql.DB, wg *sync.Wai
 
 func xmlElementOtherText(id string, o *OtherText) {
 	iSql := getInsertStmt(o)
-	_, stmtErr := dbCon.Exec(
+	_, stmtErr := appConfig.dbCon.Exec(
 		iSql, id,
 		o.TextTypeCode,
 		o.Text)
@@ -249,7 +282,7 @@ func xmlElementOtherText(id string, o *OtherText) {
 
 func xmlElementMediaFile(id string, m *MediaFile) {
 	iSql := getInsertStmt(m)
-	_, stmtErr := dbCon.Exec(
+	_, stmtErr := appConfig.dbCon.Exec(
 		iSql, id,
 		m.MediaFileTypeCode,
 		m.MediaFileLinkTypeCode,
@@ -259,7 +292,7 @@ func xmlElementMediaFile(id string, m *MediaFile) {
 
 func xmlElementImprint(id string, i *Imprint) {
 	iSql := getInsertStmt(i)
-	_, stmtErr := dbCon.Exec(
+	_, stmtErr := appConfig.dbCon.Exec(
 		iSql, id,
 		i.ImprintName)
 	handleErr(stmtErr)
@@ -267,7 +300,7 @@ func xmlElementImprint(id string, i *Imprint) {
 
 func xmlElementPublisher(id string, p *Publisher) {
 	iSql := getInsertStmt(p)
-	_, stmtErr := dbCon.Exec(
+	_, stmtErr := appConfig.dbCon.Exec(
 		iSql, id,
 		p.PublishingRole,
 		p.PublisherName)
@@ -275,7 +308,7 @@ func xmlElementPublisher(id string, p *Publisher) {
 }
 func xmlElementSalesRights(id string, s *SalesRights) {
 	iSql := getInsertStmt(s)
-	_, stmtErr := dbCon.Exec(
+	_, stmtErr := appConfig.dbCon.Exec(
 		iSql, id,
 		s.SalesRightsType,
 		s.RightsCountry)
@@ -283,7 +316,7 @@ func xmlElementSalesRights(id string, s *SalesRights) {
 }
 func xmlElementSalesRestriction(id string, s *SalesRestriction) {
 	iSql := getInsertStmt(s)
-	_, stmtErr := dbCon.Exec(
+	_, stmtErr := appConfig.dbCon.Exec(
 		iSql, id,
 		s.SalesRestrictionType)
 	handleErr(stmtErr)
@@ -291,7 +324,7 @@ func xmlElementSalesRestriction(id string, s *SalesRestriction) {
 
 func xmlElementMeasure(id string, m *Measure) {
 	iSql := getInsertStmt(m)
-	_, stmtErr := dbCon.Exec(
+	_, stmtErr := appConfig.dbCon.Exec(
 		iSql, id,
 		m.MeasureTypeCode,
 		m.Measurement,
@@ -301,7 +334,7 @@ func xmlElementMeasure(id string, m *Measure) {
 
 func xmlElementRelatedProduct(id string, r *RelatedProduct) {
 	iSql := getInsertStmt(r)
-	_, stmtErr := dbCon.Exec(
+	_, stmtErr := appConfig.dbCon.Exec(
 		iSql, id,
 		r.RelationCode,
 		r.ProductIDType,
@@ -311,7 +344,7 @@ func xmlElementRelatedProduct(id string, r *RelatedProduct) {
 
 func xmlElementSupplyDetailPrice(id string, supplierName string, p *Price) {
 	iSql := getInsertStmt(p)
-	_, stmtErr := dbCon.Exec(
+	_, stmtErr := appConfig.dbCon.Exec(
 		iSql, id,
 		supplierName,
 		p.PriceTypeCode,
@@ -325,7 +358,7 @@ func xmlElementSupplyDetailPrice(id string, supplierName string, p *Price) {
 
 func xmlElementMarketRepresentation(id string, m *MarketRepresentation) {
 	iSql := getInsertStmt(m)
-	_, stmtErr := dbCon.Exec(
+	_, stmtErr := appConfig.dbCon.Exec(
 		iSql, id,
 		m.AgentName,
 		m.AgentRole,

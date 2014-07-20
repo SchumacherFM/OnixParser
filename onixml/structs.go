@@ -19,11 +19,21 @@
 
 package onixml
 
+import "database/sql"
+
 /*
 	not all types are matched
 	http://www.editeur.org/onix/2.1/02/reference/onix-international.dtd
 */
 type (
+	appConfiguration struct {
+		inputFile   *string
+		tablePrefix *string
+		verbose     *bool
+		dbCon       *sql.DB
+		maxLoadAvg  *float64
+	}
+
 	iXmlElementToDb interface {
 		writeToDb(id string)
 	}
@@ -108,25 +118,25 @@ type (
 	}
 
 	Price struct {
-		SupplierName         string   `sql:"varchar(255) NOT NULL"` // only used in SQL table
-		PriceTypeCode        int     `xml:"PriceTypeCode" sql:"int(10) NOT NULL DEFAULT 0"`
-		DiscountCodeType     int     `xml:"DiscountCoded>DiscountCodeType" sql:"int(10) NOT NULL DEFAULT 0"`
-		DiscountCode         string  `xml:"DiscountCoded>DiscountCode" sql:"varchar(10)  NULL"`
-		PriceAmount          float32 `xml:"PriceAmount" sql:"decimal(10,2) NOT NULL DEFAULT 0"`
-		CurrencyCode         string  `xml:"CurrencyCode" sql:"varchar(10) NULL"`
-		CountryCode          string  `xml:"CountryCode" sql:"varchar(10) NULL"`
+		SupplierName     string  `sql:"varchar(255) NOT NULL"` // only used in SQL table
+		PriceTypeCode    int     `xml:"PriceTypeCode" sql:"int(10) NOT NULL DEFAULT 0"`
+		DiscountCodeType int     `xml:"DiscountCoded>DiscountCodeType" sql:"int(10) NOT NULL DEFAULT 0"`
+		DiscountCode     string  `xml:"DiscountCoded>DiscountCode" sql:"varchar(10)  NULL"`
+		PriceAmount      float32 `xml:"PriceAmount" sql:"decimal(10,2) NOT NULL DEFAULT 0"`
+		CurrencyCode     string  `xml:"CurrencyCode" sql:"varchar(10) NULL"`
+		CountryCode      string  `xml:"CountryCode" sql:"varchar(10) NULL"`
 	}
 
 	SupplyDetail struct {
-		SupplierName         string  `xml:"SupplierName" sql:"varchar(255) NOT NULL"`
-		SupplierRole         int     `xml:"SupplierRole" sql:"int(10) NOT NULL DEFAULT 0"`
-		SupplyToCountry      string  `xml:"SupplyToCountry" sql:"varchar(255) NULL"`
-		ProductAvailability  int     `xml:"ProductAvailability" sql:"int(10) NOT NULL DEFAULT 0"`
-		ExpectedShipDate     string  `xml:"ExpectedShipDate" sql:"date NULL"`
-		OnHand               int     `xml:"Stock>OnHand" sql:"int(10) NOT NULL DEFAULT 0"`
-		OnOrder              int     `xml:"Stock>OnOrder" sql:"int(10) NOT NULL DEFAULT 0"`
-		PackQuantity         int     `xml:"PackQuantity" sql:"int(10) NOT NULL DEFAULT 0"`
-		Price                []Price
+		SupplierName        string `xml:"SupplierName" sql:"varchar(255) NOT NULL"`
+		SupplierRole        int    `xml:"SupplierRole" sql:"int(10) NOT NULL DEFAULT 0"`
+		SupplyToCountry     string `xml:"SupplyToCountry" sql:"varchar(255) NULL"`
+		ProductAvailability int    `xml:"ProductAvailability" sql:"int(10) NOT NULL DEFAULT 0"`
+		ExpectedShipDate    string `xml:"ExpectedShipDate" sql:"date NULL"`
+		OnHand              int    `xml:"Stock>OnHand" sql:"int(10) NOT NULL DEFAULT 0"`
+		OnOrder             int    `xml:"Stock>OnOrder" sql:"int(10) NOT NULL DEFAULT 0"`
+		PackQuantity        int    `xml:"PackQuantity" sql:"int(10) NOT NULL DEFAULT 0"`
+		Price               []Price
 	}
 
 	MarketRepresentation struct {
@@ -148,12 +158,12 @@ type (
 		Contributor []Contributor
 		Subject     []Subject
 		Extent
-		EditionNumber      string `xml:"EditionNumber" sql:"varchar(255) NULL"`
-		NumberOfPages      string `xml:"NumberOfPages" sql:"int(10) NOT NULL DEFAULT 0"`
-		IllustrationsNote  string `xml:"IllustrationsNote" sql:"varchar(255) NULL"`
-		BICMainSubject     string `xml:"BICMainSubject" sql:"varchar(20) NULL"`
-		OtherText          []OtherText
-		AudienceCode       int `xml:"AudienceCode" sql:"int(10) NOT NULL DEFAULT 0"`
+		EditionNumber     string `xml:"EditionNumber" sql:"varchar(255) NULL"`
+		NumberOfPages     string `xml:"NumberOfPages" sql:"int(10) NOT NULL DEFAULT 0"`
+		IllustrationsNote string `xml:"IllustrationsNote" sql:"varchar(255) NULL"`
+		BICMainSubject    string `xml:"BICMainSubject" sql:"varchar(20) NULL"`
+		OtherText         []OtherText
+		AudienceCode      int `xml:"AudienceCode" sql:"int(10) NOT NULL DEFAULT 0"`
 		MediaFile
 		Imprint
 		Publisher
@@ -164,7 +174,7 @@ type (
 		YearFirstPublished string `xml:"YearFirstPublished" sql:"varchar(255) NULL"`
 		Measure
 		RelatedProduct
-		SupplyDetail    []SupplyDetail
+		SupplyDetail []SupplyDetail
 		MarketRepresentation
 	}
 )

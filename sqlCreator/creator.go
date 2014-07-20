@@ -25,10 +25,10 @@ import (
 )
 
 var (
-	tablePrefix string
+	tablePrefix *string
 )
 
-func SetTablePrefix(prefix string) {
+func SetTablePrefix(prefix *string) {
 	tablePrefix = prefix
 }
 
@@ -55,7 +55,7 @@ func isValidTableColumn(elementType string) bool {
 func getTableName(anyStruct interface{}) (string, reflect.Value) {
 	s := reflect.ValueOf(anyStruct).Elem()
 	typeOfAnyStruct := s.Type()
-	return tablePrefix+strings.ToLower(typeOfAnyStruct.Name()), s
+	return *tablePrefix + strings.ToLower(typeOfAnyStruct.Name()), s
 }
 
 // @todo use Cachekey to speed up and avoid reflection

@@ -28,7 +28,7 @@ func (p *Product) writeToDb(id string) {
 	// static typed language and that would cost performance
 	/* sometimes number can be 1,234 */
 	// avoiding reflection
-	_, stmtErr := dbCon.Exec(
+	_, stmtErr := appConfig.dbCon.Exec(
 		iSql,
 		p.RecordReference,
 		p.RecordReference,
@@ -48,7 +48,7 @@ func (p *Product) writeToDb(id string) {
 
 func (p *ProductIdentifier) writeToDb(id string) {
 	iSql := getInsertStmt(p)
-	_, stmtErr := dbCon.Exec(
+	_, stmtErr := appConfig.dbCon.Exec(
 		iSql,
 		id,
 		p.ProductIDType,
@@ -59,7 +59,7 @@ func (p *ProductIdentifier) writeToDb(id string) {
 func (t *Title) writeToDb(id string) {
 	if t.TitleType > 0 {
 		iSql := getInsertStmt(t)
-		_, stmtErr := dbCon.Exec(
+		_, stmtErr := appConfig.dbCon.Exec(
 			iSql, id,
 			t.TitleType,
 			t.TitleText,
@@ -71,7 +71,7 @@ func (t *Title) writeToDb(id string) {
 func (s *Series) writeToDb(id string) {
 	if "" != s.TitleOfSeries || "" != s.NumberWithinSeries {
 		iSql := getInsertStmt(s)
-		_, stmtErr := dbCon.Exec(
+		_, stmtErr := appConfig.dbCon.Exec(
 			iSql,
 			id,
 			s.TitleOfSeries,
@@ -82,7 +82,7 @@ func (s *Series) writeToDb(id string) {
 func (w *Website) writeToDb(id string) {
 	if "" != w.WebsiteLink {
 		iSql := getInsertStmt(w)
-		_, stmtErr := dbCon.Exec(
+		_, stmtErr := appConfig.dbCon.Exec(
 			iSql,
 			id,
 			w.WebsiteLink)
@@ -92,7 +92,7 @@ func (w *Website) writeToDb(id string) {
 func (c *Contributor) writeToDb(id string) {
 	if c.SequenceNumber > 0 {
 		iSql := getInsertStmt(c)
-		_, stmtErr := dbCon.Exec(
+		_, stmtErr := appConfig.dbCon.Exec(
 			iSql,
 			id,
 			c.SequenceNumber,
@@ -106,7 +106,7 @@ func (c *Contributor) writeToDb(id string) {
 func (s *Subject) writeToDb(id string) {
 	if s.SubjectSchemeIdentifier > 0 {
 		iSql := getInsertStmt(s)
-		_, stmtErr := dbCon.Exec(
+		_, stmtErr := appConfig.dbCon.Exec(
 			iSql,
 			id,
 			s.SubjectSchemeIdentifier,
@@ -117,7 +117,7 @@ func (s *Subject) writeToDb(id string) {
 func (e *Extent) writeToDb(id string) {
 	if e.ExtentType > 0 {
 		iSql := getInsertStmt(e)
-		_, stmtErr := dbCon.Exec(
+		_, stmtErr := appConfig.dbCon.Exec(
 			iSql, id,
 			e.ExtentType,
 			e.ExtentValue,
@@ -128,7 +128,7 @@ func (e *Extent) writeToDb(id string) {
 func (s *SupplyDetail) writeToDb(id string) {
 	if "" != s.SupplierName {
 		iSql := getInsertStmt(s)
-		_, stmtErr := dbCon.Exec(
+		_, stmtErr := appConfig.dbCon.Exec(
 			iSql, id,
 			s.SupplierName,
 			s.SupplierRole,
