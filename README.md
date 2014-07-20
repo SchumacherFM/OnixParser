@@ -1,8 +1,8 @@
-# OnixParser
+# OnixParser Concurrent execution
 
-This repo contains GoLang and PHP files to parse Onix xml files.
+This repo contains GoLang code for concurrent execution.
 
-Can PHP beat GoLang? ;-)
+Binary is build for OSX 10.9 Darwin.
 
 # XML Data
 
@@ -20,84 +20,73 @@ Inspired for learning by [http://blog.davidsingleton.org/parsing-huge-xml-files-
 
 Not all XML elements are matched because structure in DTD is unclear and we don't need all elements.
 
-Output:
+XML Filesize 278MB Output:
 
 ```
-$ time ./OnixParserConcurrency --infile xmlFiles/oup_onix.xml --db test2 -v
+$ ./OnixParser --infile xmlFiles/oup_onix.xml --db test2 -v
 OnixParser Copyright (C) 2014 Cyrill AT Schumacher dot fm
 This program comes with ABSOLUTELY NO WARRANTY; License: http://www.gnu.org/copyleft/gpl.html
-2014/07/20 12:13:16 Dropped 19 existing tables
-2014/07/20 12:13:18 1.879796552s Processed: 1000, child processes: 752, Mem alloc: 8.70MB
-2014/07/20 12:13:21 2.759961177s Processed: 2000, child processes: 1255, Mem alloc: 10.39MB
-2014/07/20 12:13:23 2.281196558s Processed: 3000, child processes: 1842, Mem alloc: 23.15MB
-2014/07/20 12:13:26 2.2795532s Processed: 4000, child processes: 2440, Mem alloc: 23.02MB
-2014/07/20 12:13:28 2.428083715s Processed: 5000, child processes: 3031, Mem alloc: 37.22MB
-2014/07/20 12:13:30 2.015324302s Processed: 6000, child processes: 3709, Mem alloc: 37.75MB
-2014/07/20 12:13:32 2.020671416s Processed: 7000, child processes: 4426, Mem alloc: 43.50MB
-2014/07/20 12:13:34 2.20758561s Processed: 8000, child processes: 4995, Mem alloc: 35.19MB
-2014/07/20 12:13:36 1.94296616s Processed: 9000, child processes: 5681, Mem alloc: 44.15MB
-2014/07/20 12:13:38 2.084476139s Processed: 10000, child processes: 6310, Mem alloc: 76.65MB
-2014/07/20 12:13:40 1.867831049s Processed: 11000, child processes: 6999, Mem alloc: 65.31MB
-2014/07/20 12:13:42 1.837092633s Processed: 12000, child processes: 7804, Mem alloc: 50.57MB
-2014/07/20 12:13:44 1.964309595s Processed: 13000, child processes: 8584, Mem alloc: 81.21MB
-2014/07/20 12:13:46 2.108973939s Processed: 14000, child processes: 9358, Mem alloc: 58.65MB
-2014/07/20 12:13:50 3.455177739s Processed: 15000, child processes: 10022, Mem alloc: 89.67MB
-2014/07/20 12:13:52 2.401940269s Processed: 16000, child processes: 10738, Mem alloc: 108.28MB
-2014/07/20 12:13:54 1.587906304s Processed: 17000, child processes: 11544, Mem alloc: 122.63MB
-2014/07/20 12:13:56 2.072638953s Processed: 18000, child processes: 12281, Mem alloc: 133.29MB
-2014/07/20 12:13:58 2.074804128s Processed: 19000, child processes: 12990, Mem alloc: 143.84MB
-2014/07/20 12:14:00 2.159436142s Processed: 20000, child processes: 13656, Mem alloc: 148.84MB
-2014/07/20 12:14:02 2.414585834s Processed: 21000, child processes: 14243, Mem alloc: 153.96MB
-2014/07/20 12:14:05 2.120901052s Processed: 22000, child processes: 14847, Mem alloc: 154.85MB
-2014/07/20 12:14:07 2.24752107s Processed: 23000, child processes: 15346, Mem alloc: 150.62MB
-2014/07/20 12:14:09 2.368137206s Processed: 24000, child processes: 15941, Mem alloc: 138.14MB
-2014/07/20 12:14:11 2.102820803s Processed: 25000, child processes: 16496, Mem alloc: 109.79MB
-2014/07/20 12:14:14 2.330307509s Processed: 26000, child processes: 16838, Mem alloc: 189.57MB
-2014/07/20 12:14:16 2.349806224s Processed: 27000, child processes: 17109, Mem alloc: 169.57MB
-2014/07/20 12:14:18 2.162176411s Processed: 28000, child processes: 17694, Mem alloc: 138.28MB
-2014/07/20 12:14:20 2.282641359s Processed: 29000, child processes: 18290, Mem alloc: 214.77MB
-2014/07/20 12:14:23 2.192836431s Processed: 30000, child processes: 19037, Mem alloc: 182.17MB
-2014/07/20 12:14:25 2.368323714s Processed: 31000, child processes: 19608, Mem alloc: 151.61MB
-2014/07/20 12:14:27 1.633814548s Processed: 32000, child processes: 20345, Mem alloc: 221.78MB
-2014/07/20 12:14:29 1.987422489s Processed: 33000, child processes: 20988, Mem alloc: 180.15MB
-2014/07/20 12:14:31 1.99859052s Processed: 34000, child processes: 21626, Mem alloc: 260.88MB
-2014/07/20 12:14:33 1.955077052s Processed: 35000, child processes: 22327, Mem alloc: 211.58MB
-2014/07/20 12:14:35 2.071890766s Processed: 36000, child processes: 23085, Mem alloc: 230.58MB
-2014/07/20 12:14:37 1.815911816s Processed: 37000, child processes: 23829, Mem alloc: 232.24MB
-2014/07/20 12:14:39 2.021806767s Processed: 38000, child processes: 24644, Mem alloc: 221.69MB
-2014/07/20 12:14:40 1.707361916s Processed: 39000, child processes: 25467, Mem alloc: 241.95MB
-2014/07/20 12:14:42 1.867942278s Processed: 40000, child processes: 26242, Mem alloc: 319.55MB
-2014/07/20 12:14:44 2.14585482s Processed: 41000, child processes: 27045, Mem alloc: 246.45MB
-2014/07/20 12:14:46 1.982444273s Processed: 42000, child processes: 27705, Mem alloc: 326.24MB
-2014/07/20 12:14:48 1.969034462s Processed: 43000, child processes: 28480, Mem alloc: 240.94MB
-2014/07/20 12:14:50 1.927976522s Processed: 44000, child processes: 29073, Mem alloc: 319.64MB
-2014/07/20 12:14:52 2.076284518s Processed: 45000, child processes: 29494, Mem alloc: 222.37MB
-2014/07/20 12:14:54 1.832563383s Processed: 46000, child processes: 30030, Mem alloc: 294.21MB
-2014/07/20 12:14:55 1.380362894s Processed: 47000, child processes: 30623, Mem alloc: 359.07MB
-2014/07/20 12:14:57 1.843187116s Processed: 48000, child processes: 31224, Mem alloc: 240.56MB
-2014/07/20 12:15:08 29499 child processes remaining ... 2014-07-20 12:15:08.908702699 +1000 EST
-2014/07/20 12:15:18 26725 child processes remaining ... 2014-07-20 12:15:18.908334787 +1000 EST
-2014/07/20 12:15:28 23132 child processes remaining ... 2014-07-20 12:15:28.908345311 +1000 EST
-2014/07/20 12:15:38 19391 child processes remaining ... 2014-07-20 12:15:38.908344404 +1000 EST
-2014/07/20 12:15:48 13802 child processes remaining ... 2014-07-20 12:15:48.908354984 +1000 EST
-2014/07/20 12:15:58 6 child processes remaining ... 2014-07-20 12:15:58.909032752 +1000 EST
-2014/07/20 12:15:58 Total articles: 48637
-2014/07/20 12:15:58 Total errors: 0
-2014/07/20 12:15:58 XML Parser took 0h 2m 162.285939s to run.
-2014/07/20 12:15:58 XML Parser took 2m42.285938833s to run.
-
-real	2m42.345s
-user	1m40.032s
-sys	    0m58.290s
+2014/07/20 12:58:28 Dropped 15 existing tables
+2014/07/20 12:58:30 1.696429991s Processed: 1000, child processes: 783, Mem alloc: 22.70MB
+2014/07/20 12:58:32 2.000549676s Processed: 2000, child processes: 1425, Mem alloc: 37.40MB
+2014/07/20 12:58:34 2.032047269s Processed: 3000, child processes: 2014, Mem alloc: 50.28MB
+2014/07/20 12:58:36 2.126721153s Processed: 4000, child processes: 2719, Mem alloc: 64.66MB
+2014/07/20 12:58:39 2.477956106s Processed: 5000, child processes: 3347, Mem alloc: 78.42MB
+2014/07/20 12:58:41 2.366202751s Processed: 6000, child processes: 3912, Mem alloc: 92.49MB
+2014/07/20 12:58:44 2.511615940s Processed: 7000, child processes: 4562, Mem alloc: 103.99MB
+2014/07/20 12:58:46 2.360495760s Processed: 8000, child processes: 5159, Mem alloc: 119.29MB
+2014/07/20 12:58:48 1.876899327s Processed: 9000, child processes: 5753, Mem alloc: 131.36MB
+2014/07/20 12:58:49 1.678509629s Processed: 10000, child processes: 6450, Mem alloc: 145.37MB
+2014/07/20 12:58:52 2.189865604s Processed: 11000, child processes: 7005, Mem alloc: 154.37MB
+2014/07/20 12:58:54 2.063110983s Processed: 12000, child processes: 7718, Mem alloc: 165.06MB
+2014/07/20 12:58:55 1.634053347s Processed: 13000, child processes: 8485, Mem alloc: 176.38MB
+2014/07/20 12:58:57 2.095966550s Processed: 14000, child processes: 9218, Mem alloc: 192.37MB
+2014/07/20 12:58:59 1.852198041s Processed: 15000, child processes: 9977, Mem alloc: 204.26MB
+2014/07/20 12:59:01 1.796805218s Processed: 16000, child processes: 10743, Mem alloc: 219.26MB
+2014/07/20 12:59:03 2.067620401s Processed: 17000, child processes: 11492, Mem alloc: 237.65MB
+2014/07/20 12:59:05 1.619303423s Processed: 18000, child processes: 12258, Mem alloc: 253.60MB
+2014/07/20 12:59:07 1.955929824s Processed: 19000, child processes: 13010, Mem alloc: 268.31MB
+2014/07/20 12:59:09 2.074955765s Processed: 20000, child processes: 13754, Mem alloc: 284.82MB
+2014/07/20 12:59:11 2.295056187s Processed: 21000, child processes: 14438, Mem alloc: 301.32MB
+2014/07/20 12:59:13 2.115669885s Processed: 22000, child processes: 15059, Mem alloc: 310.08MB
+2014/07/20 12:59:15 2.094373829s Processed: 23000, child processes: 15624, Mem alloc: 323.09MB
+2014/07/20 12:59:17 2.098578482s Processed: 24000, child processes: 16135, Mem alloc: 339.16MB
+2014/07/20 12:59:19 1.438987846s Processed: 25000, child processes: 16920, Mem alloc: 360.17MB
+2014/07/20 12:59:21 1.704874825s Processed: 26000, child processes: 17446, Mem alloc: 365.61MB
+2014/07/20 12:59:23 2.187127534s Processed: 27000, child processes: 17750, Mem alloc: 374.87MB
+2014/07/20 12:59:25 1.935661751s Processed: 28000, child processes: 18212, Mem alloc: 391.25MB
+2014/07/20 12:59:27 2.228236543s Processed: 29000, child processes: 18744, Mem alloc: 399.50MB
+2014/07/20 12:59:29 1.807835524s Processed: 30000, child processes: 19312, Mem alloc: 410.88MB
+2014/07/20 12:59:31 2.057599998s Processed: 31000, child processes: 20096, Mem alloc: 429.52MB
+2014/07/20 12:59:32 1.602475634s Processed: 32000, child processes: 20793, Mem alloc: 435.14MB
+2014/07/20 12:59:34 1.937873196s Processed: 33000, child processes: 21550, Mem alloc: 456.59MB
+2014/07/20 12:59:38 3.187732317s Processed: 34000, child processes: 22116, Mem alloc: 471.67MB
+2014/07/20 12:59:40 2.207788615s Processed: 35000, child processes: 22873, Mem alloc: 485.80MB
+2014/07/20 12:59:42 1.984706182s Processed: 36000, child processes: 23576, Mem alloc: 510.57MB
+2014/07/20 12:59:44 1.998194673s Processed: 37000, child processes: 24294, Mem alloc: 517.38MB
+2014/07/20 12:59:46 1.909828674s Processed: 38000, child processes: 25018, Mem alloc: 543.34MB
+2014/07/20 12:59:47 1.658589319s Processed: 39000, child processes: 25829, Mem alloc: 551.84MB
+2014/07/20 12:59:49 2.043943403s Processed: 40000, child processes: 26642, Mem alloc: 562.34MB
+2014/07/20 12:59:52 2.175651195s Processed: 41000, child processes: 27389, Mem alloc: 588.97MB
+2014/07/20 12:59:54 2.028642737s Processed: 42000, child processes: 28149, Mem alloc: 599.48MB
+2014/07/20 12:59:56 2.075818822s Processed: 43000, child processes: 28831, Mem alloc: 625.18MB
+2014/07/20 12:59:58 2.232703332s Processed: 44000, child processes: 29507, Mem alloc: 630.81MB
+2014/07/20 13:00:00 2.384482530s Processed: 45000, child processes: 30046, Mem alloc: 663.90MB
+2014/07/20 13:00:02 1.763376000s Processed: 46000, child processes: 30616, Mem alloc: 668.52MB
+2014/07/20 13:00:04 1.577886029s Processed: 47000, child processes: 31203, Mem alloc: 672.77MB
+2014/07/20 13:00:06 2.179890588s Processed: 48000, child processes: 31700, Mem alloc: 705.86MB
+2014/07/20 13:00:17 29936 child processes remaining ... 2014-07-20 13:00:17.386865822 +1000 EST
+2014/07/20 13:00:27 27717 child processes remaining ... 2014-07-20 13:00:27.386898857 +1000 EST
+2014/07/20 13:00:37 24315 child processes remaining ... 2014-07-20 13:00:37.386867606 +1000 EST
+2014/07/20 13:00:47 20820 child processes remaining ... 2014-07-20 13:00:47.386878769 +1000 EST
+2014/07/20 13:00:57 16592 child processes remaining ... 2014-07-20 13:00:57.38693394 +1000 EST
+2014/07/20 13:01:07 7208  child processes remaining ... 2014-07-20 13:01:07.386874033 +1000 EST
+2014/07/20 13:01:17 6     child processes remaining ... 2014-07-20 13:01:17.387629411 +1000 EST
+2014/07/20 13:01:17 Total articles: 48637
+2014/07/20 13:01:17 Total errors: 0
+2014/07/20 13:01:17 XML Parser took 0h 2m 169.110496s to run.
+2014/07/20 13:01:17 XML Parser took 2m49.110496443s to run.
 ```
-
-# PHP
-
-see onixSQL.php
-
-PHP needs > 12h of parsing. PHP 5.5 used.
-
-To be fair that script should be rewritten to use the XmlReader()
 
 # License
 

@@ -339,7 +339,7 @@ func printDuration(timeStart time.Time, currentCount int) {
 	duration := timeEnd.Sub(timeStart)
 	memStats := &runtime.MemStats{}
 	runtime.ReadMemStats(memStats)
-	mem := float64(memStats.Alloc) / 1024 / 1024
+	mem := float64(memStats.Sys) / 1024 / 1024
 	logger("%v Processed: %d, child processes: %d, Mem alloc: %.2fMB\n",
 		duration,
 		currentCount,
