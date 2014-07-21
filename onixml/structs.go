@@ -27,11 +27,11 @@ import "database/sql"
 */
 type (
 	appConfiguration struct {
-		inputFile   *string
-		tablePrefix *string
-		verbose     *bool
-		dbCon       *sql.DB
-		maxLoadAvg  *float64
+		inputFile     *string
+		tablePrefix   *string
+		verbose       *bool
+		dbCon         *sql.DB
+		maxGoRoutines *int
 	}
 
 	iXmlElementToDb interface {

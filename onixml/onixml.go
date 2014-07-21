@@ -22,7 +22,6 @@ import (
 	"../sqlCreator"
 	"database/sql"
 	"encoding/xml"
-	"github.com/cloudfoundry/gosigar"
 	"log"
 	"os"
 	"reflect"
@@ -31,16 +30,15 @@ import (
 	"time"
 )
 
-const MIN_LOAD_AVG = 3 // if lower than this value the feature is disabled and we're run with full power
-
 var appConfig = appConfiguration{}
 
-func SetAppConfig(dbCon *sql.DB, tablePrefix *string, inputFile *string, maxLoadAvg *float64, verbose *bool) {
+// hmm not that nice
+func SetAppConfig(dbCon *sql.DB, tablePrefix *string, inputFile *string, maxGoRoutines *int, verbose *bool) {
 	appConfig.dbCon = dbCon
 	appConfig.tablePrefix = tablePrefix
 	appConfig.inputFile = inputFile
-	if nil != maxLoadAvg {
-		appConfig.maxLoadAvg = maxLoadAvg
+	if nil != maxGoRoutines {
+		appConfig.maxGoRoutines = maxGoRoutines
 	}
 	appConfig.verbose = verbose
 }
@@ -56,16 +54,6 @@ func logger(format string, v ...interface{}) {
 	if *appConfig.verbose {
 		log.Printf(format, v...)
 	}
-}
-
-func getLoadAverage() float64 {
-	ccs := sigar.ConcreteSigar{}
-
-	lavg, err := ccs.GetLoadAverage()
-	if nil != err {
-		return 0
-	}
-	return lavg.One
 }
 
 func OnixmlDecode() (int, int) {
@@ -124,7 +112,7 @@ func OnixmlDecode() (int, int) {
 					timeStart = time.Now()
 				}
 				total++
-				handleLoadAverage()
+				handleAmountOfGoRoutines()
 			}
 		default:
 		}
@@ -133,13 +121,13 @@ func OnixmlDecode() (int, int) {
 	return total, totalErr
 }
 
-func handleLoadAverage() {
-	if *appConfig.maxLoadAvg > MIN_LOAD_AVG && getLoadAverage() > *appConfig.maxLoadAvg {
+func handleAmountOfGoRoutines() {
+	if runtime.NumGoroutine() > *appConfig.maxGoRoutines {
 		c := time.Tick(5 * time.Second)
 		for now := range c {
-			lavg := getLoadAverage()
-			logger("Current Load Average %.2f Should be %.2f ... %v", lavg, *appConfig.maxLoadAvg, now)
-			if lavg < *appConfig.maxLoadAvg {
+			ngo := runtime.NumGoroutine()
+			logger("Child processes: %d/%d ... %v", ngo, *appConfig.maxGoRoutines, now)
+			if ngo < *appConfig.maxGoRoutines || ngo < 10 {
 				break
 			}
 		}
@@ -200,171 +188,6 @@ func getNameOfStruct(anyStruct interface{}) string {
 
 func getInsertStmt(anyStruct interface{}) string {
 	return sqlCreator.GetInsertTableByStruct(anyStruct)
-}
-
-func parseXmlElementsConcurrent(prod *Product, appConfig *appConfiguration, wg *sync.WaitGroup) {
-	// as we are in another thread set the dbCon new
-	SetAppConfig(appConfig.dbCon, appConfig.tablePrefix, appConfig.inputFile, nil, appConfig.verbose)
-	defer wg.Done()
-
-	prod.writeToDb("")
-
-	if len(prod.ProductIdentifier) > 0 {
-		for _, prodIdentifier := range prod.ProductIdentifier {
-			prodIdentifier.writeToDb(prod.RecordReference)
-		}
-	}
-	prod.Title.writeToDb(prod.RecordReference)
-	prod.Series.writeToDb(prod.RecordReference)
-	prod.Website.writeToDb(prod.RecordReference)
-	prod.Extent.writeToDb(prod.RecordReference)
-
-	if len(prod.Contributor) > 0 {
-		for _, prodContributor := range prod.Contributor {
-			prodContributor.writeToDb(prod.RecordReference)
-		}
-	}
-
-	if len(prod.Subject) > 0 {
-		for _, prodSubject := range prod.Subject {
-			prodSubject.writeToDb(prod.RecordReference)
-		}
-	}
-	if len(prod.SupplyDetail) > 0 {
-		for _, prodSupplyDetail := range prod.SupplyDetail {
-			prodSupplyDetail.writeToDb(prod.RecordReference)
-		}
-	}
-
-	// @todo convert all other methods here to struct based ones
-	if len(prod.OtherText) > 0 {
-		for _, prodOtherText := range prod.OtherText {
-			if prodOtherText.TextTypeCode > 0 {
-				xmlElementOtherText(prod.RecordReference, &prodOtherText)
-			}
-		}
-	}
-
-	if prod.MediaFile.MediaFileTypeCode > 0 {
-		xmlElementMediaFile(prod.RecordReference, &prod.MediaFile)
-	}
-	if "" != prod.Imprint.ImprintName {
-		xmlElementImprint(prod.RecordReference, &prod.Imprint)
-	}
-	if prod.Publisher.PublishingRole > 0 {
-		xmlElementPublisher(prod.RecordReference, &prod.Publisher)
-	}
-	if prod.SalesRights.SalesRightsType > 0 {
-		xmlElementSalesRights(prod.RecordReference, &prod.SalesRights)
-	}
-	if prod.SalesRestriction.SalesRestrictionType > 0 {
-		xmlElementSalesRestriction(prod.RecordReference, &prod.SalesRestriction)
-	}
-	if prod.Measure.MeasureTypeCode > 0 {
-		xmlElementMeasure(prod.RecordReference, &prod.Measure)
-	}
-	if prod.RelatedProduct.ProductIDType > 0 {
-		xmlElementRelatedProduct(prod.RecordReference, &prod.RelatedProduct)
-	}
-	if "" != prod.MarketRepresentation.AgentName {
-		xmlElementMarketRepresentation(prod.RecordReference, &prod.MarketRepresentation)
-	}
-}
-
-func xmlElementOtherText(id string, o *OtherText) {
-	iSql := getInsertStmt(o)
-	_, stmtErr := appConfig.dbCon.Exec(
-		iSql, id,
-		o.TextTypeCode,
-		o.Text)
-	handleErr(stmtErr)
-}
-
-func xmlElementMediaFile(id string, m *MediaFile) {
-	iSql := getInsertStmt(m)
-	_, stmtErr := appConfig.dbCon.Exec(
-		iSql, id,
-		m.MediaFileTypeCode,
-		m.MediaFileLinkTypeCode,
-		m.MediaFileLink)
-	handleErr(stmtErr)
-}
-
-func xmlElementImprint(id string, i *Imprint) {
-	iSql := getInsertStmt(i)
-	_, stmtErr := appConfig.dbCon.Exec(
-		iSql, id,
-		i.ImprintName)
-	handleErr(stmtErr)
-}
-
-func xmlElementPublisher(id string, p *Publisher) {
-	iSql := getInsertStmt(p)
-	_, stmtErr := appConfig.dbCon.Exec(
-		iSql, id,
-		p.PublishingRole,
-		p.PublisherName)
-	handleErr(stmtErr)
-}
-func xmlElementSalesRights(id string, s *SalesRights) {
-	iSql := getInsertStmt(s)
-	_, stmtErr := appConfig.dbCon.Exec(
-		iSql, id,
-		s.SalesRightsType,
-		s.RightsCountry)
-	handleErr(stmtErr)
-}
-func xmlElementSalesRestriction(id string, s *SalesRestriction) {
-	iSql := getInsertStmt(s)
-	_, stmtErr := appConfig.dbCon.Exec(
-		iSql, id,
-		s.SalesRestrictionType)
-	handleErr(stmtErr)
-}
-
-func xmlElementMeasure(id string, m *Measure) {
-	iSql := getInsertStmt(m)
-	_, stmtErr := appConfig.dbCon.Exec(
-		iSql, id,
-		m.MeasureTypeCode,
-		m.Measurement,
-		m.MeasureUnitCode)
-	handleErr(stmtErr)
-}
-
-func xmlElementRelatedProduct(id string, r *RelatedProduct) {
-	iSql := getInsertStmt(r)
-	_, stmtErr := appConfig.dbCon.Exec(
-		iSql, id,
-		r.RelationCode,
-		r.ProductIDType,
-		r.IDValue)
-	handleErr(stmtErr)
-}
-
-func xmlElementSupplyDetailPrice(id string, supplierName string, p *Price) {
-	iSql := getInsertStmt(p)
-	_, stmtErr := appConfig.dbCon.Exec(
-		iSql, id,
-		supplierName,
-		p.PriceTypeCode,
-		p.DiscountCodeType,
-		p.DiscountCode,
-		p.PriceAmount,
-		p.CurrencyCode,
-		p.CountryCode)
-	handleErr(stmtErr)
-}
-
-func xmlElementMarketRepresentation(id string, m *MarketRepresentation) {
-	iSql := getInsertStmt(m)
-	_, stmtErr := appConfig.dbCon.Exec(
-		iSql, id,
-		m.AgentName,
-		m.AgentRole,
-		m.MarketCountry,
-		m.MarketPublishingStatus)
-	handleErr(stmtErr)
 }
 
 func printDuration(timeStart time.Time, currentCount int) {

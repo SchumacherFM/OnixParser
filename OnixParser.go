@@ -33,28 +33,28 @@ import (
 )
 
 type appConfiguration struct {
-	inputFile   *string
-	dbHost      *string
-	dbDb        *string
-	dbUser      *string
-	dbPass      *string
-	tablePrefix *string
-	verbose     *bool
-	dbCon       *sql.DB
-	maxLoadAvg  *float64
-	maxOpenCon  *int
+	inputFile     *string
+	dbHost        *string
+	dbDb          *string
+	dbUser        *string
+	dbPass        *string
+	tablePrefix   *string
+	verbose       *bool
+	dbCon         *sql.DB
+	maxGoRoutines *int
+	maxOpenCon    *int
 }
 
 var appConfig = appConfiguration{
-	inputFile:   flag.String("infile", "", "Input file path"),
-	dbHost:      flag.String("host", "127.0.0.1", "MySQL host name"),
-	dbDb:        flag.String("db", "test", "MySQL db name"),
-	dbUser:      flag.String("user", "test", "MySQL user name"),
-	dbPass:      flag.String("pass", "test", "MySQL password"),
-	tablePrefix: flag.String("tablePrefix", "gonix_", "Table name prefix"),
-	verbose:     flag.Bool("v", false, "Increase verbosity"),
-	maxLoadAvg:  flag.Float64("mla", 6.5, "Max Load Average, float value. Recommended > 6, if <= 3 then disabled"),
-	maxOpenCon:  flag.Int("moc", 20, "Max MySQL open connections"),
+	inputFile:     flag.String("infile", "", "Input file path"),
+	dbHost:        flag.String("host", "127.0.0.1", "MySQL host name"),
+	dbDb:          flag.String("db", "test", "MySQL db name"),
+	dbUser:        flag.String("user", "test", "MySQL user name"),
+	dbPass:        flag.String("pass", "test", "MySQL password"),
+	tablePrefix:   flag.String("tablePrefix", "gonix_", "Table name prefix"),
+	verbose:       flag.Bool("v", false, "Increase verbosity"),
+	maxGoRoutines: flag.Int("children", 2200, "Max number of sub processes. This can be up to the amount of products your importing."),
+	maxOpenCon:    flag.Int("moc", 20, "Max MySQL open connections"),
 }
 
 func handleErr(theErr error) {
@@ -127,7 +127,7 @@ func main() {
 	fmt.Println("This program comes with ABSOLUTELY NO WARRANTY; License: http://www.gnu.org/copyleft/gpl.html")
 	flag.Parse()
 	initDatabase()
-	onixml.SetAppConfig(appConfig.dbCon, appConfig.tablePrefix, appConfig.inputFile, appConfig.maxLoadAvg, appConfig.verbose)
+	onixml.SetAppConfig(appConfig.dbCon, appConfig.tablePrefix, appConfig.inputFile, appConfig.maxGoRoutines, appConfig.verbose)
 	total, totalErr := onixml.OnixmlDecode()
 
 	logger("Total products: %d \n", total)
