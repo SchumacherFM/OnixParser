@@ -20,58 +20,51 @@ package onixml
 
 import (
 	"../sqlCreator"
-	"database/sql"
 	"encoding/xml"
-	"log"
 	"os"
 	"reflect"
 	"runtime"
 	"sync" // for concurrency
 	"time"
+	"github.com/SchumacherFM/OnixParser/gonfig"
+
 )
 
-var appConfig = appConfiguration{}
+var appConfig *gonfig.AppConfiguration
 
-// hmm not that nice
-func SetAppConfig(dbCon *sql.DB, tablePrefix *string, inputFile *string, maxGoRoutines *int, verbose *bool) {
-	appConfig.dbCon = dbCon
-	appConfig.tablePrefix = tablePrefix
-	appConfig.inputFile = inputFile
-	if nil != maxGoRoutines {
-		appConfig.maxGoRoutines = maxGoRoutines
-	}
-	appConfig.verbose = verbose
+// inherits from OnixParser.go
+func SetAppConfig(ac *gonfig.AppConfiguration) {
+	appConfig = ac
 }
 
-func handleErr(theErr error) {
-	if nil != theErr {
-		panic(theErr)
-		//	log.Fatal(theErr.Error())
-	}
-}
+func initFileWriter() {
 
-func logger(format string, v ...interface{}) {
-	if *appConfig.verbose {
-		log.Printf(format, v...)
-	}
+	//	outFile := "/tmp/" + *appConfig.tablePrefix + randString(10) + ".csv"
+	//	if "" != *appConfig.outputFile {
+	//		outFile = *appConfig.outputFile
+	//	}
+	//
+	//	fmt.Println(outFile)
+
+	//appConfig.fileWriter :    getFileWriterBuffer(),
 }
 
 func OnixmlDecode() (int, int) {
-	sqlCreator.SetTablePrefix(appConfig.tablePrefix)
+	sqlCreator.SetTablePrefix(appConfig.TablePrefix)
 	total := 0
 	totalErr := 0
 
-	if "" == *appConfig.inputFile {
-		logger("Input file is empty\n")
+	if "" == *appConfig.InputFile {
+		appConfig.Log("Input file is empty\n")
 		return -1, -1
 	}
 
-	xmlFile, err := os.Open(*appConfig.inputFile)
-	handleErr(err)
+	xmlFile, err := os.Open(*appConfig.InputFile)
+	appConfig.HandleErr(err)
 	xmlStat, err := xmlFile.Stat()
-	handleErr(err)
+	appConfig.HandleErr(err)
 	if true == xmlStat.IsDir() {
-		logger("%s is a directory ...\n", appConfig.inputFile)
+		appConfig.Log("%s is a directory ...\n", appConfig.InputFile)
 		return -1, -1
 	}
 
@@ -87,7 +80,7 @@ func OnixmlDecode() (int, int) {
 		if t == nil {
 			break
 		}
-		handleErr(dtErr)
+		appConfig.HandleErr(dtErr)
 
 		// Inspect the type of the token just read.
 		switch se := t.(type) {
@@ -101,13 +94,13 @@ func OnixmlDecode() (int, int) {
 				// variable prod which is a Product (se above)
 				decErr := decoder.DecodeElement(&prod, &se)
 				if nil != decErr {
-					logger("Decode Error, Type mismatch: %v\n%v\n", prod, decErr)
+					appConfig.Log("Decode Error, Type mismatch: %v\n%v\n", prod, decErr)
 					totalErr++
 				}
 				wg.Add(1)
-				go parseXmlElementsConcurrent(&prod, &appConfig, &wg)
+				go parseXmlElementsConcurrent(&prod, appConfig, &wg)
 
-				if true == *appConfig.verbose && total > 0 && 0 == total%1000 {
+				if true == *appConfig.Verbose && total > 0 && 0 == total%1000 {
 					printDuration(timeStart, total)
 					timeStart = time.Now()
 				}
@@ -122,12 +115,12 @@ func OnixmlDecode() (int, int) {
 }
 
 func handleAmountOfGoRoutines() {
-	if runtime.NumGoroutine() > *appConfig.maxGoRoutines {
+	if runtime.NumGoroutine() > *appConfig.MaxGoRoutines {
 		c := time.Tick(5 * time.Second)
 		for now := range c {
 			ngo := runtime.NumGoroutine()
-			logger("Child processes: %d/%d ... %v", ngo, *appConfig.maxGoRoutines, now)
-			if ngo < *appConfig.maxGoRoutines || ngo < 10 {
+			appConfig.Log("Too many child processes: %d/%d ... %v", ngo, *appConfig.MaxGoRoutines, now)
+			if ngo < *appConfig.MaxGoRoutines || ngo < 10 {
 				break
 			}
 		}
@@ -138,7 +131,7 @@ func printWaitForGoRoutines() {
 	c := time.Tick(10 * time.Second) // every 10 seconds
 	for now := range c {
 		numRoutines := runtime.NumGoroutine()
-		logger("%d child processes remaining ... %v", numRoutines, now)
+		appConfig.Log("%d child processes remaining ... %v", numRoutines, now)
 		if numRoutines < 10 {
 			break
 		}
@@ -176,8 +169,8 @@ func createTables() {
 
 func createTable(anyStruct interface{}) {
 	createTable := sqlCreator.GetCreateTableByStruct(anyStruct)
-	_, err := appConfig.dbCon.Exec(createTable) // instead of .Query because we don't care for result. Exec closes resource
-	handleErr(err)
+	_, err := appConfig.GetConnection().Exec(createTable) // instead of .Query because we don't care for result. Exec closes resource
+	appConfig.HandleErr(err)
 }
 
 func getNameOfStruct(anyStruct interface{}) string {
@@ -196,7 +189,7 @@ func printDuration(timeStart time.Time, currentCount int) {
 	memStats := &runtime.MemStats{}
 	runtime.ReadMemStats(memStats)
 	mem := float64(memStats.Sys) / 1024 / 1024
-	logger("%v Processed: %d, child processes: %d, Mem alloc: %.2fMB\n",
+	appConfig.Log("%v Processed: %d, child processes: %d, Mem alloc: %.2fMB\n",
 		duration,
 		currentCount,
 		runtime.NumGoroutine(),

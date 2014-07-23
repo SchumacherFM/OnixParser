@@ -19,21 +19,11 @@
 
 package onixml
 
-import "database/sql"
-
 /*
 	not all types are matched
 	http://www.editeur.org/onix/2.1/02/reference/onix-international.dtd
 */
 type (
-	appConfiguration struct {
-		inputFile     *string
-		tablePrefix   *string
-		verbose       *bool
-		dbCon         *sql.DB
-		maxGoRoutines *int
-	}
-
 	iXmlElementToDb interface {
 		writeToDb(id string)
 	}

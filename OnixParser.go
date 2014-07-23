@@ -19,102 +19,67 @@
 package main
 
 import (
-	"./onixml"
-	"./sqlCreator"
-	"database/sql"
 	"flag"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
-	"log"
 	"net/url"
 	"os"
 	"runtime"
 	"time"
+
+	_ "github.com/go-sql-driver/mysql"
+
+	"github.com/SchumacherFM/OnixParser/gonfig"
+	"./onixml"
+	"./sqlCreator"
+
 )
 
-type appConfiguration struct {
-	inputFile     *string
-	dbHost        *string
-	dbDb          *string
-	dbUser        *string
-	dbPass        *string
-	tablePrefix   *string
-	verbose       *bool
-	dbCon         *sql.DB
-	maxGoRoutines *int
-	maxOpenCon    *int
-}
+var appConfig = gonfig.NewAppConfiguration()
 
-var appConfig = appConfiguration{
-	inputFile:     flag.String("infile", "", "Input file path"),
-	dbHost:        flag.String("host", "127.0.0.1", "MySQL host name"),
-	dbDb:          flag.String("db", "test", "MySQL db name"),
-	dbUser:        flag.String("user", "test", "MySQL user name"),
-	dbPass:        flag.String("pass", "test", "MySQL password"),
-	tablePrefix:   flag.String("tablePrefix", "gonix_", "Table name prefix"),
-	verbose:       flag.Bool("v", false, "Increase verbosity"),
-	maxGoRoutines: flag.Int("children", 2200, "Max number of sub processes. This can be up to the amount of products your importing."),
-	maxOpenCon:    flag.Int("moc", 20, "Max MySQL open connections"),
-}
+func init() {
+	appConfig.InputFile = flag.String("infile", "", "Input file path")
+	appConfig.OutputFile = flag.String("outfile", "", "Prefix of CSV output file for reading into MySQL, if empty writes to /tmp/rand_[table].csv")
+	//	appConfig.DbHost = flag.String("host", "127.0.0.1", "MySQL host name")
+	//	appConfig.DbDb = flag.String("db", "test", "MySQL db name")
+	//	appConfig.DbUser = flag.String("user", "test", "MySQL user name")
+	//	appConfig.DbPass = flag.String("pass", "test", "MySQL password")
 
-func handleErr(theErr error) {
-	if nil != theErr {
-		log.Fatal(theErr.Error())
-	}
-}
+	appConfig.SetConnection(
+		flag.String("host", "127.0.0.1", "MySQL host name"),
+		flag.String("db", "test", "MySQL db name"),
+		flag.String("user", "test", "MySQL user name"),
+		flag.String("pass", "test", "MySQL password"),
+		flag.Int("moc", 20, "Max MySQL open connections"),
+	)
 
-func logger(format string, v ...interface{}) {
-	if *appConfig.verbose {
-		log.Printf(format, v...)
-	}
-}
+	appConfig.TablePrefix = flag.String("tablePrefix", "gonix_", "Table name prefix")
+	appConfig.Verbose = flag.Bool("v", false, "Increase verbosity")
+	appConfig.MaxGoRoutines = flag.Int("children", 2200, "Max number of sub processes. This can be up to the amount of products your importing.")
 
-func getConnection() *sql.DB {
-	var dbConErr error
-
-	if nil == appConfig.dbCon {
-		appConfig.dbCon, dbConErr = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s",
-			url.QueryEscape(*appConfig.dbUser),
-			url.QueryEscape(*appConfig.dbPass),
-			*appConfig.dbHost,
-			*appConfig.dbDb))
-		handleErr(dbConErr)
-		appConfig.dbCon.SetMaxIdleConns(5)
-		appConfig.dbCon.SetMaxOpenConns(int(*appConfig.maxOpenCon)) // amount of structs
-		// why is defer close not working here?
-	}
-	return appConfig.dbCon
 }
 
 func initDatabase() {
 	// Open doesn't open a connection. Validate DSN data:
-	err := getConnection().Ping()
-	handleErr(err)
+	err := appConfig.GetConnection().Ping()
+	appConfig.HandleErr(err)
 
 	// delete already created tables
 	// escape dbdb due to SQL injection
-	columnName := sqlCreator.QuoteInto("Tables_in_" + *appConfig.dbDb)
-	showQuery := "SHOW TABLES FROM " + sqlCreator.QuoteInto(*appConfig.dbDb) + " WHERE " + columnName + " LIKE '" + url.QueryEscape(*appConfig.tablePrefix) + "%'"
-	rows, err := getConnection().Query(showQuery)
-	handleErr(err)
+	columnName := sqlCreator.QuoteInto("Tables_in_" + *appConfig.DbDb)
+	showQuery := "SHOW TABLES FROM " + sqlCreator.QuoteInto(*appConfig.DbDb) + " WHERE " + columnName + " LIKE '" + url.QueryEscape(*appConfig.TablePrefix) + "%'"
+	rows, err := appConfig.GetConnection().Query(showQuery)
+	appConfig.HandleErr(err)
 	defer rows.Close()
 	rowCount := 0
 	for rows.Next() { // just for learning purpose otherwise we can directly drop tables here
 		var tableName string
 		err = rows.Scan(&tableName)
-		handleErr(err)
-		_, err := getConnection().Exec("DROP TABLE " + sqlCreator.QuoteInto(tableName))
-		handleErr(err)
+		appConfig.HandleErr(err)
+		_, err := appConfig.GetConnection().Exec("DROP TABLE " + sqlCreator.QuoteInto(tableName))
+		appConfig.HandleErr(err)
 		rowCount++
 	}
-	logger("Dropped %d existing tables", rowCount)
-}
-
-func printDuration(timeStart time.Time) {
-	timeEnd := time.Now()
-	duration := timeEnd.Sub(timeStart)
-	logger("XML Parser took %dh %dm %fs to run.\n", int(duration.Hours()), int(duration.Minutes()), duration.Seconds())
-	logger("XML Parser took %v to run.\n", duration)
+	appConfig.Log("Dropped %d existing tables", rowCount)
 }
 
 func main() {
@@ -127,11 +92,19 @@ func main() {
 	fmt.Println("This program comes with ABSOLUTELY NO WARRANTY; License: http://www.gnu.org/copyleft/gpl.html")
 	flag.Parse()
 	initDatabase()
-	onixml.SetAppConfig(appConfig.dbCon, appConfig.tablePrefix, appConfig.inputFile, appConfig.maxGoRoutines, appConfig.verbose)
+	onixml.SetAppConfig(appConfig)
 	total, totalErr := onixml.OnixmlDecode()
 
-	logger("Total products: %d \n", total)
-	logger("Total errors: %d \n", totalErr)
-	getConnection().Close()
+	appConfig.Log("Total products: %d \n", total)
+	appConfig.Log("Total errors: %d \n", totalErr)
+	appConfig.GetConnection().Close()
 	printDuration(timeStart)
+}
+
+
+func printDuration(timeStart time.Time) {
+	timeEnd := time.Now()
+	duration := timeEnd.Sub(timeStart)
+	appConfig.Log("XML Parser took %dh %dm %fs to run.\n", int(duration.Hours()), int(duration.Minutes()), duration.Seconds())
+	appConfig.Log("XML Parser took %v to run.\n", duration)
 }

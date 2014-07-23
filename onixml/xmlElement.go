@@ -20,11 +20,12 @@ package onixml
 
 import (
 	"sync" // for concurrency
+	"github.com/SchumacherFM/OnixParser/gonfig"
 )
 
-func parseXmlElementsConcurrent(prod *Product, appConfig *appConfiguration, wg *sync.WaitGroup) {
+func parseXmlElementsConcurrent(prod *Product, appConfig *gonfig.AppConfiguration, wg *sync.WaitGroup) {
 	// as we are in another thread set the dbCon new
-	SetAppConfig(appConfig.dbCon, appConfig.tablePrefix, appConfig.inputFile, nil, appConfig.verbose)
+	SetAppConfig(appConfig)
 	defer wg.Done()
 
 	prod.writeToDb("")
@@ -93,78 +94,78 @@ func parseXmlElementsConcurrent(prod *Product, appConfig *appConfiguration, wg *
 
 func xmlElementOtherText(id string, o *OtherText) {
 	iSql := getInsertStmt(o)
-	_, stmtErr := appConfig.dbCon.Exec(
+	_, stmtErr := appConfig.GetConnection().Exec(
 		iSql, id,
 		o.TextTypeCode,
 		o.Text)
-	handleErr(stmtErr)
+	appConfig.HandleErr(stmtErr)
 }
 
 func xmlElementMediaFile(id string, m *MediaFile) {
 	iSql := getInsertStmt(m)
-	_, stmtErr := appConfig.dbCon.Exec(
+	_, stmtErr := appConfig.GetConnection().Exec(
 		iSql, id,
 		m.MediaFileTypeCode,
 		m.MediaFileLinkTypeCode,
 		m.MediaFileLink)
-	handleErr(stmtErr)
+	appConfig.HandleErr(stmtErr)
 }
 
 func xmlElementImprint(id string, i *Imprint) {
 	iSql := getInsertStmt(i)
-	_, stmtErr := appConfig.dbCon.Exec(
+	_, stmtErr := appConfig.GetConnection().Exec(
 		iSql, id,
 		i.ImprintName)
-	handleErr(stmtErr)
+	appConfig.HandleErr(stmtErr)
 }
 
 func xmlElementPublisher(id string, p *Publisher) {
 	iSql := getInsertStmt(p)
-	_, stmtErr := appConfig.dbCon.Exec(
+	_, stmtErr := appConfig.GetConnection().Exec(
 		iSql, id,
 		p.PublishingRole,
 		p.PublisherName)
-	handleErr(stmtErr)
+	appConfig.HandleErr(stmtErr)
 }
 func xmlElementSalesRights(id string, s *SalesRights) {
 	iSql := getInsertStmt(s)
-	_, stmtErr := appConfig.dbCon.Exec(
+	_, stmtErr := appConfig.GetConnection().Exec(
 		iSql, id,
 		s.SalesRightsType,
 		s.RightsCountry)
-	handleErr(stmtErr)
+	appConfig.HandleErr(stmtErr)
 }
 func xmlElementSalesRestriction(id string, s *SalesRestriction) {
 	iSql := getInsertStmt(s)
-	_, stmtErr := appConfig.dbCon.Exec(
+	_, stmtErr := appConfig.GetConnection().Exec(
 		iSql, id,
 		s.SalesRestrictionType)
-	handleErr(stmtErr)
+	appConfig.HandleErr(stmtErr)
 }
 
 func xmlElementMeasure(id string, m *Measure) {
 	iSql := getInsertStmt(m)
-	_, stmtErr := appConfig.dbCon.Exec(
+	_, stmtErr := appConfig.GetConnection().Exec(
 		iSql, id,
 		m.MeasureTypeCode,
 		m.Measurement,
 		m.MeasureUnitCode)
-	handleErr(stmtErr)
+	appConfig.HandleErr(stmtErr)
 }
 
 func xmlElementRelatedProduct(id string, r *RelatedProduct) {
 	iSql := getInsertStmt(r)
-	_, stmtErr := appConfig.dbCon.Exec(
+	_, stmtErr := appConfig.GetConnection().Exec(
 		iSql, id,
 		r.RelationCode,
 		r.ProductIDType,
 		r.IDValue)
-	handleErr(stmtErr)
+	appConfig.HandleErr(stmtErr)
 }
 
 func xmlElementSupplyDetailPrice(id string, supplierName string, p *Price) {
 	iSql := getInsertStmt(p)
-	_, stmtErr := appConfig.dbCon.Exec(
+	_, stmtErr := appConfig.GetConnection().Exec(
 		iSql, id,
 		supplierName,
 		p.PriceTypeCode,
@@ -173,16 +174,16 @@ func xmlElementSupplyDetailPrice(id string, supplierName string, p *Price) {
 		p.PriceAmount,
 		p.CurrencyCode,
 		p.CountryCode)
-	handleErr(stmtErr)
+	appConfig.HandleErr(stmtErr)
 }
 
 func xmlElementMarketRepresentation(id string, m *MarketRepresentation) {
 	iSql := getInsertStmt(m)
-	_, stmtErr := appConfig.dbCon.Exec(
+	_, stmtErr := appConfig.GetConnection().Exec(
 		iSql, id,
 		m.AgentName,
 		m.AgentRole,
 		m.MarketCountry,
 		m.MarketPublishingStatus)
-	handleErr(stmtErr)
+	appConfig.HandleErr(stmtErr)
 }

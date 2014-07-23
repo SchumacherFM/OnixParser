@@ -28,7 +28,7 @@ func (p *Product) writeToDb(id string) {
 	// static typed language and that would cost performance
 	/* sometimes number can be 1,234 */
 	// avoiding reflection
-	_, stmtErr := appConfig.dbCon.Exec(
+	_, stmtErr := appConfig.GetConnection().Exec(
 		iSql,
 		p.RecordReference,
 		p.RecordReference,
@@ -43,56 +43,56 @@ func (p *Product) writeToDb(id string) {
 		p.PublishingStatus,
 		p.PublicationDate,
 		p.YearFirstPublished)
-	handleErr(stmtErr)
+	appConfig.HandleErr(stmtErr)
 }
 
 func (p *ProductIdentifier) writeToDb(id string) {
 	iSql := getInsertStmt(p)
-	_, stmtErr := appConfig.dbCon.Exec(
+	_, stmtErr := appConfig.GetConnection().Exec(
 		iSql,
 		id,
 		p.ProductIDType,
 		p.IDValue)
-	handleErr(stmtErr)
+	appConfig.HandleErr(stmtErr)
 }
 
 func (t *Title) writeToDb(id string) {
 	if t.TitleType > 0 {
 		iSql := getInsertStmt(t)
-		_, stmtErr := appConfig.dbCon.Exec(
+		_, stmtErr := appConfig.GetConnection().Exec(
 			iSql, id,
 			t.TitleType,
 			t.TitleText,
 			t.TitlePrefix,
 			t.TitleWithoutPrefix)
-		handleErr(stmtErr)
+		appConfig.HandleErr(stmtErr)
 	}
 }
 func (s *Series) writeToDb(id string) {
 	if "" != s.TitleOfSeries || "" != s.NumberWithinSeries {
 		iSql := getInsertStmt(s)
-		_, stmtErr := appConfig.dbCon.Exec(
+		_, stmtErr := appConfig.GetConnection().Exec(
 			iSql,
 			id,
 			s.TitleOfSeries,
 			s.NumberWithinSeries)
-		handleErr(stmtErr)
+		appConfig.HandleErr(stmtErr)
 	}
 }
 func (w *Website) writeToDb(id string) {
 	if "" != w.WebsiteLink {
 		iSql := getInsertStmt(w)
-		_, stmtErr := appConfig.dbCon.Exec(
+		_, stmtErr := appConfig.GetConnection().Exec(
 			iSql,
 			id,
 			w.WebsiteLink)
-		handleErr(stmtErr)
+		appConfig.HandleErr(stmtErr)
 	}
 }
 func (c *Contributor) writeToDb(id string) {
 	if c.SequenceNumber > 0 {
 		iSql := getInsertStmt(c)
-		_, stmtErr := appConfig.dbCon.Exec(
+		_, stmtErr := appConfig.GetConnection().Exec(
 			iSql,
 			id,
 			c.SequenceNumber,
@@ -100,35 +100,35 @@ func (c *Contributor) writeToDb(id string) {
 			c.PersonNameInverted,
 			c.TitlesBeforeNames,
 			c.KeyNames)
-		handleErr(stmtErr)
+		appConfig.HandleErr(stmtErr)
 	}
 }
 func (s *Subject) writeToDb(id string) {
 	if s.SubjectSchemeIdentifier > 0 {
 		iSql := getInsertStmt(s)
-		_, stmtErr := appConfig.dbCon.Exec(
+		_, stmtErr := appConfig.GetConnection().Exec(
 			iSql,
 			id,
 			s.SubjectSchemeIdentifier,
 			s.SubjectCode)
-		handleErr(stmtErr)
+		appConfig.HandleErr(stmtErr)
 	}
 }
 func (e *Extent) writeToDb(id string) {
 	if e.ExtentType > 0 {
 		iSql := getInsertStmt(e)
-		_, stmtErr := appConfig.dbCon.Exec(
+		_, stmtErr := appConfig.GetConnection().Exec(
 			iSql, id,
 			e.ExtentType,
 			e.ExtentValue,
 			e.ExtentUnit)
-		handleErr(stmtErr)
+		appConfig.HandleErr(stmtErr)
 	}
 }
 func (s *SupplyDetail) writeToDb(id string) {
 	if "" != s.SupplierName {
 		iSql := getInsertStmt(s)
-		_, stmtErr := appConfig.dbCon.Exec(
+		_, stmtErr := appConfig.GetConnection().Exec(
 			iSql, id,
 			s.SupplierName,
 			s.SupplierRole,
@@ -138,7 +138,7 @@ func (s *SupplyDetail) writeToDb(id string) {
 			s.OnHand,
 			s.OnOrder,
 			s.PackQuantity)
-		handleErr(stmtErr)
+		appConfig.HandleErr(stmtErr)
 
 		if len(s.Price) > 0 {
 			for _, sPrice := range s.Price {
