@@ -29,34 +29,12 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/SchumacherFM/OnixParser/gonfig"
-	"./onixml"
-	"./sqlCreator"
+	"github.com/SchumacherFM/OnixParser/onixml"
+	"github.com/SchumacherFM/OnixParser/sqlCreator"
 
 )
 
 var appConfig = gonfig.NewAppConfiguration()
-
-func init() {
-	appConfig.InputFile = flag.String("infile", "", "Input file path")
-	appConfig.OutputFile = flag.String("outfile", "", "Prefix of CSV output file for reading into MySQL, if empty writes to /tmp/rand_[table].csv")
-	//	appConfig.DbHost = flag.String("host", "127.0.0.1", "MySQL host name")
-	//	appConfig.DbDb = flag.String("db", "test", "MySQL db name")
-	//	appConfig.DbUser = flag.String("user", "test", "MySQL user name")
-	//	appConfig.DbPass = flag.String("pass", "test", "MySQL password")
-
-	appConfig.SetConnection(
-		flag.String("host", "127.0.0.1", "MySQL host name"),
-		flag.String("db", "test", "MySQL db name"),
-		flag.String("user", "test", "MySQL user name"),
-		flag.String("pass", "test", "MySQL password"),
-		flag.Int("moc", 20, "Max MySQL open connections"),
-	)
-
-	appConfig.TablePrefix = flag.String("tablePrefix", "gonix_", "Table name prefix")
-	appConfig.Verbose = flag.Bool("v", false, "Increase verbosity")
-	appConfig.MaxGoRoutines = flag.Int("children", 2200, "Max number of sub processes. This can be up to the amount of products your importing.")
-
-}
 
 func initDatabase() {
 	// Open doesn't open a connection. Validate DSN data:

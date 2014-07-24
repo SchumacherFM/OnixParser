@@ -24,6 +24,7 @@ import (
 	"log"
 	"net/url"
 	"fmt"
+	"flag"
 )
 
 type AppConfiguration struct {
@@ -42,6 +43,19 @@ type AppConfiguration struct {
 
 func NewAppConfiguration() *AppConfiguration {
 	a := new(AppConfiguration)
+	a.InputFile = flag.String("infile", "", "Input file path")
+	a.OutputFile = flag.String("outfile", "", "Prefix of CSV output file for reading into MySQL, if empty writes to /tmp/rand_[table].csv")
+	a.SetConnection(
+		flag.String("host", "127.0.0.1", "MySQL host name"),
+		flag.String("db", "test", "MySQL db name"),
+		flag.String("user", "test", "MySQL user name"),
+		flag.String("pass", "test", "MySQL password"),
+		flag.Int("moc", 20, "Max MySQL open connections"),
+	)
+	a.TablePrefix = flag.String("tablePrefix", "gonix_", "Table name prefix")
+	a.Verbose = flag.Bool("v", false, "Increase verbosity")
+	a.MaxGoRoutines = flag.Int("children", 2200, "Max number of sub processes. This can be up to the amount of products your importing.")
+
 	return a
 }
 
