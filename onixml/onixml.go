@@ -27,6 +27,7 @@ import (
 	"time"
 	"github.com/SchumacherFM/OnixParser/gonfig"
 	"github.com/SchumacherFM/OnixParser/sqlCreator"
+	"strings"
 )
 
 var appConfig *gonfig.AppConfiguration
@@ -34,18 +35,6 @@ var appConfig *gonfig.AppConfiguration
 // inherits from OnixParser.go
 func SetAppConfig(ac *gonfig.AppConfiguration) {
 	appConfig = ac
-}
-
-func initFileWriter() {
-
-	//	outFile := "/tmp/" + *appConfig.tablePrefix + randString(10) + ".csv"
-	//	if "" != *appConfig.outputFile {
-	//		outFile = *appConfig.outputFile
-	//	}
-	//
-	//	fmt.Println(outFile)
-
-	//appConfig.fileWriter :    getFileWriterBuffer(),
 }
 
 func OnixmlDecode() (int, int) {
@@ -70,6 +59,7 @@ func OnixmlDecode() (int, int) {
 	defer xmlFile.Close()
 	decoder := xml.NewDecoder(xmlFile)
 	createTables()
+
 	var wg sync.WaitGroup
 	var inElement string
 	timeStart := time.Now()
@@ -140,7 +130,7 @@ func printWaitForGoRoutines() {
 func createTables() {
 
 	// is there a way to do this easier/better?
-	structSlice := make([]interface{}, 19)
+	structSlice := make([]interface{}, gonfig.AMOUNT_OF_STRUCTS)
 	structSlice[0] = new(Product)
 	structSlice[1] = new(ProductIdentifier)
 	structSlice[2] = new(Title)
@@ -163,7 +153,22 @@ func createTables() {
 
 	for _, theStruct := range structSlice {
 		createTable(theStruct)
+		initFileWriter(theStruct)
 	}
+}
+
+func initFileWriter(anyStruct interface{}) {
+
+	tableName := getNameOfStruct(anyStruct)
+	fileName := appConfig.GetOutputFile(tableName)
+
+	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		appConfig.HandleErr(err)
+		os.Exit(1)
+	}
+	appConfig.SetOutputFile(tableName, file)
+	defer file.Close()
 }
 
 func createTable(anyStruct interface{}) {
@@ -180,6 +185,13 @@ func getNameOfStruct(anyStruct interface{}) string {
 
 func getInsertStmt(anyStruct interface{}) string {
 	return sqlCreator.GetInsertTableByStruct(anyStruct)
+}
+
+func writeXmlDataToFile(tableName string, args []string) (int, error) {
+	fp := appConfig.GetOutputFilePointer(tableName)
+
+	return fp.WriteString(strings.Join(args, ";"))
+
 }
 
 func printDuration(timeStart time.Time, currentCount int) {

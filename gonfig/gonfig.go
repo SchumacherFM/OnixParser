@@ -25,11 +25,19 @@ import (
 	"net/url"
 	"fmt"
 	"flag"
+	"os"
+	"sync"
+)
+
+const (
+	AMOUNT_OF_STRUCTS = 19
 )
 
 type AppConfiguration struct {
 	InputFile     *string
-	OutputFile    *string
+	outputDir    *string
+	outputFiles   map[string]*os.File
+	sync.RWMutex
 	dbHost        *string
 	DbDb          *string
 	dbUser        *string
@@ -44,7 +52,7 @@ type AppConfiguration struct {
 func NewAppConfiguration() *AppConfiguration {
 	a := new(AppConfiguration)
 	a.InputFile = flag.String("infile", "", "Input file path")
-	a.OutputFile = flag.String("outfile", "", "Prefix of CSV output file for reading into MySQL, if empty writes to /tmp/rand_[table].csv")
+	a.outputDir = flag.String("outdir", "", "Dir for CSV output file for reading into MySQL, if empty writes to /tmp/")
 	a.SetConnection(
 		flag.String("host", "127.0.0.1", "MySQL host name"),
 		flag.String("db", "test", "MySQL db name"),
@@ -56,6 +64,7 @@ func NewAppConfiguration() *AppConfiguration {
 	a.Verbose = flag.Bool("v", false, "Increase verbosity")
 	a.MaxGoRoutines = flag.Int("children", 2200, "Max number of sub processes. This can be up to the amount of products your importing.")
 
+	a.outputFiles = make(map[string]*os.File, AMOUNT_OF_STRUCTS)
 	return a
 }
 
@@ -66,6 +75,7 @@ func (a *AppConfiguration) SetConnection(host *string, db *string, user *string,
 	a.dbPass = pass
 	a.maxOpenCon = maxOpenCon
 }
+
 func (a *AppConfiguration) GetConnection() *sql.DB {
 	var dbConErr error
 
@@ -83,8 +93,25 @@ func (a *AppConfiguration) GetConnection() *sql.DB {
 	return a.dbCon
 }
 
-func (a *AppConfiguration) GetOutputFilePrefix() string {
-	return "/tmp/" + randString(12) + ".csv"
+func (a *AppConfiguration) GetOutputFile(sqlTableName string) string {
+	path := *a.TablePrefix + sqlTableName + "_" + randString(12) + ".csv"
+	if "" == *a.outputDir {
+		return "/tmp/" + path
+	}
+	return *a.outputDir + path
+}
+
+func (a *AppConfiguration) SetOutputFile(tableName string, fp *os.File) {
+	a.Lock()
+	a.outputFiles[tableName] = fp
+	a.Unlock()
+}
+
+func (a *AppConfiguration) GetOutputFilePointer(tableName string) *os.File {
+	a.RLock()
+	fp := a.outputFiles[tableName]
+	a.RUnlock()
+	return fp
 }
 
 func (a *AppConfiguration) Log(format string, v ...interface{}) {
