@@ -26,14 +26,14 @@ import (
 // typeInfo holds details for the xml representation of a type.
 type typeInfo struct {
 	structName string
-	fields  []fieldInfo
+	fields     []fieldInfo
 }
 
 // fieldInfo holds details for the xml representation of a single field.
 type fieldInfo struct {
-	idx       []int
-	name      string
-	colType   string
+	idx     []int
+	name    string
+	colType string
 }
 
 type Name struct {

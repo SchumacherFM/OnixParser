@@ -19,9 +19,9 @@
 package sqlCreator
 
 import (
-	"strings"
-	"reflect"
 	"log"
+	"reflect"
+	"strings"
 )
 
 var (
@@ -35,7 +35,6 @@ func SetTablePrefix(prefix *string) {
 func QuoteInto(data string) string {
 	return "`" + strings.Replace(data, "`", "", -1) + "`"
 }
-
 
 func handleErr(theErr error) {
 	if nil != theErr {
@@ -60,7 +59,7 @@ func getTableName(anyStruct interface{}) (string, reflect.Value) {
 
 // @todo use Cachekey to speed up and avoid reflection
 func getSqlConfigFromStruct(val reflect.Value, cacheKey string) *typeInfo {
-	var tinfo        *typeInfo
+	var tinfo *typeInfo
 	var err error
 	typ := val.Type()
 	tinfo, err = getTypeInfo(typ)
@@ -69,7 +68,7 @@ func getSqlConfigFromStruct(val reflect.Value, cacheKey string) *typeInfo {
 }
 
 // @todo refactor and use reflext.Value instead of interface
-func GetCreateTableByStruct(anyStruct interface{}) (string) {
+func GetCreateTableByStruct(anyStruct interface{}) string {
 	tableName, reflectValue := getTableName(anyStruct)
 
 	columnDefinitions := getSqlConfigFromStruct(reflectValue, tableName)
@@ -86,7 +85,7 @@ func GetCreateTableByStruct(anyStruct interface{}) (string) {
 	return createTable + " (\n" + strings.Join(columns, ",\n") + "\n) ENGINE=InnoDB DEFAULT CHARSET=utf8;"
 }
 
-func GetInsertTableByStruct(anyStruct interface{}) (string) {
+func GetInsertTableByStruct(anyStruct interface{}) string {
 	tableName, reflectValue := getTableName(anyStruct)
 	columnDefinitions := getSqlConfigFromStruct(reflectValue, tableName)
 	insertTable := "INSERT INTO " + QuoteInto(tableName)

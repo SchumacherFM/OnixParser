@@ -31,7 +31,6 @@ import (
 	"github.com/SchumacherFM/OnixParser/gonfig"
 	"github.com/SchumacherFM/OnixParser/onixml"
 	"github.com/SchumacherFM/OnixParser/sqlCreator"
-
 )
 
 var appConfig = gonfig.NewAppConfiguration()
@@ -78,7 +77,6 @@ func main() {
 	appConfig.GetConnection().Close()
 	printDuration(timeStart)
 }
-
 
 func printDuration(timeStart time.Time) {
 	timeEnd := time.Now()

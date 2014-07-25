@@ -19,8 +19,8 @@
 package onixml
 
 import (
-	"sync" // for concurrency
 	"github.com/SchumacherFM/OnixParser/gonfig"
+	"sync" // for concurrency
 )
 
 func parseXmlElementsConcurrent(prod *Product, appConfig *gonfig.AppConfiguration, wg *sync.WaitGroup) {

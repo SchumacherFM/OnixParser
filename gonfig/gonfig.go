@@ -19,12 +19,12 @@
 package gonfig
 
 import (
-	"database/sql"
 	"crypto/rand"
+	"database/sql"
+	"flag"
+	"fmt"
 	"log"
 	"net/url"
-	"fmt"
-	"flag"
 	"os"
 	"sync"
 )
@@ -34,9 +34,9 @@ const (
 )
 
 type AppConfiguration struct {
-	InputFile     *string
-	outputDir    *string
-	outputFiles   map[string]*os.File
+	InputFile   *string
+	outputDir   *string
+	outputFiles map[string]*os.File
 	sync.RWMutex
 	dbHost        *string
 	DbDb          *string
@@ -68,7 +68,7 @@ func NewAppConfiguration() *AppConfiguration {
 	return a
 }
 
-func (a *AppConfiguration) SetConnection(host *string, db *string, user *string, pass *string, maxOpenCon    *int) {
+func (a *AppConfiguration) SetConnection(host *string, db *string, user *string, pass *string, maxOpenCon *int) {
 	a.dbHost = host
 	a.DbDb = db
 	a.dbUser = user
@@ -81,10 +81,10 @@ func (a *AppConfiguration) GetConnection() *sql.DB {
 
 	if nil == a.dbCon {
 		a.dbCon, dbConErr = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s",
-				url.QueryEscape(*a.dbUser),
-				url.QueryEscape(*a.dbPass),
-				*a.dbHost,
-				*a.DbDb))
+			url.QueryEscape(*a.dbUser),
+			url.QueryEscape(*a.dbPass),
+			*a.dbHost,
+			*a.DbDb))
 		a.HandleErr(dbConErr)
 		a.dbCon.SetMaxIdleConns(5)
 		a.dbCon.SetMaxOpenConns(int(*a.maxOpenCon)) // amount of structs

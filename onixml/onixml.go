@@ -20,14 +20,14 @@ package onixml
 
 import (
 	"encoding/xml"
+	"github.com/SchumacherFM/OnixParser/gonfig"
+	"github.com/SchumacherFM/OnixParser/sqlCreator"
 	"os"
 	"reflect"
 	"runtime"
+	"strings"
 	"sync" // for concurrency
 	"time"
-	"github.com/SchumacherFM/OnixParser/gonfig"
-	"github.com/SchumacherFM/OnixParser/sqlCreator"
-	"strings"
 )
 
 var appConfig *gonfig.AppConfiguration
