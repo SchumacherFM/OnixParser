@@ -17,17 +17,13 @@
     Contribute @ https://github.com/SchumacherFM/OnixParser
 */
 
-package onixml
+package onixStructs
 
 /*
 	not all types are matched
 	http://www.editeur.org/onix/2.1/02/reference/onix-international.dtd
 */
 type (
-	iXmlElementToDb interface {
-		writeToDb(id string)
-	}
-
 	ProductIdentifier struct {
 		ProductIDType int    `xml:"ProductIDType" sql:"bigint(14)"`
 		IDValue       string `xml:"IDValue" sql:"varchar(255) NULL"`
@@ -96,9 +92,9 @@ type (
 	}
 
 	Measure struct {
-		MeasureTypeCode int     `xml:"Measure>MeasureTypeCode" sql:"int(10) NOT NULL"`
-		Measurement     float32 `xml:"Measure>Measurement" sql:"decimal(10,2) NOT NULL DEFAULT 0"`
-		MeasureUnitCode string  `xml:"Measure>MeasureUnitCode" sql:"varchar(10) NULL"`
+		MeasureTypeCode int    `xml:"Measure>MeasureTypeCode" sql:"int(10) NOT NULL"`
+		Measurement     string `xml:"Measure>Measurement" sql:"decimal(10,2) NOT NULL DEFAULT 0"`
+		MeasureUnitCode string `xml:"Measure>MeasureUnitCode" sql:"varchar(10) NULL"`
 	}
 
 	RelatedProduct struct {
@@ -108,13 +104,13 @@ type (
 	}
 
 	Price struct {
-		SupplierName     string  `sql:"varchar(255) NOT NULL"` // only used in SQL table
-		PriceTypeCode    int     `xml:"PriceTypeCode" sql:"int(10) NOT NULL DEFAULT 0"`
-		DiscountCodeType int     `xml:"DiscountCoded>DiscountCodeType" sql:"int(10) NOT NULL DEFAULT 0"`
-		DiscountCode     string  `xml:"DiscountCoded>DiscountCode" sql:"varchar(10)  NULL"`
-		PriceAmount      float32 `xml:"PriceAmount" sql:"decimal(10,2) NOT NULL DEFAULT 0"`
-		CurrencyCode     string  `xml:"CurrencyCode" sql:"varchar(10) NULL"`
-		CountryCode      string  `xml:"CountryCode" sql:"varchar(10) NULL"`
+		SupplierName     string `sql:"varchar(255) NOT NULL"` // only used in SQL table
+		PriceTypeCode    int    `xml:"PriceTypeCode" sql:"int(10) NOT NULL DEFAULT 0"`
+		DiscountCodeType int    `xml:"DiscountCoded>DiscountCodeType" sql:"int(10) NOT NULL DEFAULT 0"`
+		DiscountCode     string `xml:"DiscountCoded>DiscountCode" sql:"varchar(10)  NULL"`
+		PriceAmount      string `xml:"PriceAmount" sql:"decimal(10,2) NOT NULL DEFAULT 0"`
+		CurrencyCode     string `xml:"CurrencyCode" sql:"varchar(10) NULL"`
+		CountryCode      string `xml:"CountryCode" sql:"varchar(10) NULL"`
 	}
 
 	SupplyDetail struct {

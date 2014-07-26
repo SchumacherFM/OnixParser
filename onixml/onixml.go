@@ -21,12 +21,11 @@ package onixml
 import (
 	"encoding/xml"
 	"github.com/SchumacherFM/OnixParser/gonfig"
+	. "github.com/SchumacherFM/OnixParser/onixStructs"
 	"github.com/SchumacherFM/OnixParser/sqlCreator"
 	"os"
-	"reflect"
 	"runtime"
-	"strings"
-	"sync" // for concurrency
+	"sync"
 	"time"
 )
 
@@ -87,33 +86,20 @@ func OnixmlDecode() (int, int) {
 					totalErr++
 				}
 				wg.Add(1)
-				go parseXmlElementsConcurrent(&prod, appConfig, &wg)
+				// go here does not really make sense ... but for learning it is ok
+				go ParseXmlElementsConcurrent(&prod, appConfig, &wg)
 
 				if true == *appConfig.Verbose && total > 0 && 0 == total%1000 {
 					printDuration(timeStart, total)
 					timeStart = time.Now()
 				}
 				total++
-				handleAmountOfGoRoutines()
 			}
 		default:
 		}
 	}
 	wg.Wait() // wait for the goroutines to finish, is that now redundant regarding the infinite for loop?
 	return total, totalErr
-}
-
-func handleAmountOfGoRoutines() {
-	if runtime.NumGoroutine() > *appConfig.MaxGoRoutines {
-		c := time.Tick(5 * time.Second)
-		for now := range c {
-			ngo := runtime.NumGoroutine()
-			appConfig.Log("Too many child processes: %d/%d ... %v", ngo, *appConfig.MaxGoRoutines, now)
-			if ngo < *appConfig.MaxGoRoutines || ngo < 10 {
-				break
-			}
-		}
-	}
 }
 
 func printWaitForGoRoutines() {
@@ -158,40 +144,14 @@ func createTables() {
 }
 
 func initFileWriter(anyStruct interface{}) {
-
-	tableName := getNameOfStruct(anyStruct)
-	fileName := appConfig.GetOutputFile(tableName)
-
-	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0600)
-	if err != nil {
-		appConfig.HandleErr(err)
-		os.Exit(1)
-	}
-	appConfig.SetOutputFile(tableName, file)
-	defer file.Close()
+	tableName := appConfig.GetNameOfStruct(anyStruct)
+	appConfig.InitOutputFile(tableName)
 }
 
 func createTable(anyStruct interface{}) {
 	createTable := sqlCreator.GetCreateTableByStruct(anyStruct)
 	_, err := appConfig.GetConnection().Exec(createTable) // instead of .Query because we don't care for result. Exec closes resource
 	appConfig.HandleErr(err)
-}
-
-func getNameOfStruct(anyStruct interface{}) string {
-	s := reflect.ValueOf(anyStruct).Elem()
-	typeOfAnyStruct := s.Type()
-	return typeOfAnyStruct.Name()
-}
-
-func getInsertStmt(anyStruct interface{}) string {
-	return sqlCreator.GetInsertTableByStruct(anyStruct)
-}
-
-func writeXmlDataToFile(tableName string, args []string) (int, error) {
-	fp := appConfig.GetOutputFilePointer(tableName)
-
-	return fp.WriteString(strings.Join(args, ";"))
-
 }
 
 func printDuration(timeStart time.Time, currentCount int) {

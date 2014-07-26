@@ -26,6 +26,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"reflect"
 	"sync"
 )
 
@@ -45,8 +46,13 @@ type AppConfiguration struct {
 	TablePrefix   *string
 	Verbose       *bool
 	dbCon         *sql.DB
-	MaxGoRoutines *int
 	maxOpenCon    *int
+	Csv           struct {
+		LineEnding *string
+		Delimiter  *string
+		Enclosure  *string
+		Escape     *string
+	}
 }
 
 func NewAppConfiguration() *AppConfiguration {
@@ -62,7 +68,11 @@ func NewAppConfiguration() *AppConfiguration {
 	)
 	a.TablePrefix = flag.String("tablePrefix", "gonix_", "Table name prefix")
 	a.Verbose = flag.Bool("v", false, "Increase verbosity")
-	a.MaxGoRoutines = flag.Int("children", 2200, "Max number of sub processes. This can be up to the amount of products your importing.")
+
+	a.Csv.LineEnding = flag.String("csv-l", "\n", "CSV Line Ending")
+	a.Csv.Delimiter = flag.String("csv-d", "|", "CSV field delimiter")
+	a.Csv.Enclosure = flag.String("csv-en", "\"", "CSV Set the field enclosure character (one character only).")
+	a.Csv.Escape = flag.String("csv-es", "\\", "CSV Set the escape character (one character only). Defaults as a backslash.")
 
 	a.outputFiles = make(map[string]*os.File, AMOUNT_OF_STRUCTS)
 	return a
@@ -93,7 +103,7 @@ func (a *AppConfiguration) GetConnection() *sql.DB {
 	return a.dbCon
 }
 
-func (a *AppConfiguration) GetOutputFile(sqlTableName string) string {
+func (a *AppConfiguration) getOutputFileName(sqlTableName string) string {
 	path := *a.TablePrefix + sqlTableName + "_" + randString(12) + ".csv"
 	if "" == *a.outputDir {
 		return "/tmp/" + path
@@ -101,17 +111,39 @@ func (a *AppConfiguration) GetOutputFile(sqlTableName string) string {
 	return *a.outputDir + path
 }
 
-func (a *AppConfiguration) SetOutputFile(tableName string, fp *os.File) {
+func (a *AppConfiguration) InitOutputFile(tableName string) {
+
+	fileName := a.getOutputFileName(tableName)
+
+	filePointer, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		a.HandleErr(err)
+		os.Exit(1)
+	}
 	a.Lock()
-	a.outputFiles[tableName] = fp
-	a.Unlock()
+	defer a.Unlock()
+	a.outputFiles[tableName] = filePointer
 }
 
-func (a *AppConfiguration) GetOutputFilePointer(tableName string) *os.File {
+func (a *AppConfiguration) CloseOutputFiles() {
+	for tn, fp := range a.outputFiles {
+		fp.Close()
+		a.Log("Closed file: %s\n", tn)
+	}
+}
+
+func (a *AppConfiguration) getOutputFilePointer(tableName string) *os.File {
 	a.RLock()
-	fp := a.outputFiles[tableName]
-	a.RUnlock()
+	defer a.RUnlock()
+	fp, ok := a.outputFiles[tableName]
+	if !ok {
+		panic("Failed to get file pointer for tableName: " + tableName)
+	}
 	return fp
+}
+
+func (a *AppConfiguration) WriteBytes(tableName string, byteString []byte) (int, error) {
+	return a.getOutputFilePointer(tableName).Write(byteString)
 }
 
 func (a *AppConfiguration) Log(format string, v ...interface{}) {
@@ -126,6 +158,12 @@ func (a *AppConfiguration) HandleErr(theErr error) {
 	}
 }
 
+func (a *AppConfiguration) GetNameOfStruct(anyStruct interface{}) string {
+	s := reflect.ValueOf(anyStruct).Elem()
+	typeOfAnyStruct := s.Type()
+	return typeOfAnyStruct.Name()
+}
+
 func randString(n int) string {
 	const alphaNum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 	var bytes = make([]byte, n)
@@ -135,3 +173,4 @@ func randString(n int) string {
 	}
 	return string(bytes)
 }
+

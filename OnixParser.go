@@ -75,6 +75,7 @@ func main() {
 	appConfig.Log("Total products: %d \n", total)
 	appConfig.Log("Total errors: %d \n", totalErr)
 	appConfig.GetConnection().Close()
+	appConfig.CloseOutputFiles()
 	printDuration(timeStart)
 }
 

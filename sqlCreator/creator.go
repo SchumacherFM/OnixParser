@@ -85,17 +85,17 @@ func GetCreateTableByStruct(anyStruct interface{}) string {
 	return createTable + " (\n" + strings.Join(columns, ",\n") + "\n) ENGINE=InnoDB DEFAULT CHARSET=utf8;"
 }
 
-func GetInsertTableByStruct(anyStruct interface{}) string {
-	tableName, reflectValue := getTableName(anyStruct)
-	columnDefinitions := getSqlConfigFromStruct(reflectValue, tableName)
-	insertTable := "INSERT INTO " + QuoteInto(tableName)
-	var columns, jokers []string
-	columns = append(columns, "`id`")
-	jokers = append(jokers, "?")
-	for i := 0; i < len(columnDefinitions.fields); i++ {
-		col := columnDefinitions.fields[i]
-		columns = append(columns, QuoteInto(col.name))
-		jokers = append(jokers, "?")
-	}
-	return insertTable + " (" + strings.Join(columns, ",") + ") VALUES (" + strings.Join(jokers, ",") + ")"
-}
+//func GetInsertTableByStruct(anyStruct interface{}) string {
+//	tableName, reflectValue := getTableName(anyStruct)
+//	columnDefinitions := getSqlConfigFromStruct(reflectValue, tableName)
+//	insertTable := "INSERT INTO " + QuoteInto(tableName)
+//	var columns, jokers []string
+//	columns = append(columns, "`id`")
+//	jokers = append(jokers, "?")
+//	for i := 0; i < len(columnDefinitions.fields); i++ {
+//		col := columnDefinitions.fields[i]
+//		columns = append(columns, QuoteInto(col.name))
+//		jokers = append(jokers, "?")
+//	}
+//	return insertTable + " (" + strings.Join(columns, ",") + ") VALUES (" + strings.Join(jokers, ",") + ")"
+//}
