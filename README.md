@@ -1,26 +1,26 @@
 # OnixParser Concurrent execution
 
-This repo contains GoLang code for concurrent execution.
+A parser for the ONIX xml file format written in GoLang.
 
-Binary is build for OSX 10.9 Darwin.
+My first learning project. Of course it contains many *mistakes* but the binary runs quite nice and at Zookal.com we're
+using it in production. If you find an error or incorrect usage of Go, let me know :-)
+
+Inspired for learning by [http://blog.davidsingleton.org/parsing-huge-xml-files-with-go/](http://blog.davidsingleton.org/parsing-huge-xml-files-with-go/)
 
 # XML Data
 
 [http://www.editeur.org/onix/2.1/02/reference/onix-international.dtd](http://www.editeur.org/onix/2.1/02/reference/onix-international.dtd)
 
-#### Test data Onix Data Feed
+### Test data Onix Data Feed
 
 You can download test data from [http://www.oup.com.au/help_and_advice/booksellers](http://www.oup.com.au/help_and_advice/booksellers)
 
-The Complete File or The Incremental File
+The Complete File or The Incremental File.
 
-# Go
+Not all XML elements are matched because structure in DTD is unclear and we don't need all elements. If one element is
+missing send me an email or a pull request.
 
-Inspired for learning by [http://blog.davidsingleton.org/parsing-huge-xml-files-with-go/](http://blog.davidsingleton.org/parsing-huge-xml-files-with-go/)
-
-Not all XML elements are matched because structure in DTD is unclear and we don't need all elements.
-
-### Performance
+# Performance
 
 Parsing a **3GB XML** file with **998673 products** needs **14m36.525541544s** to import that data **into MySQL 5.5**.
 
@@ -61,8 +61,7 @@ General Public License
 
 [http://www.gnu.org/copyleft/gpl.html](http://www.gnu.org/copyleft/gpl.html)
 
-Author
-------
+# Author
 
 [Cyrill Schumacher](https://github.com/SchumacherFM) - [My pgp public key](http://www.schumacher.fm/cyrill.asc)
 
