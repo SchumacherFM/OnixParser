@@ -55,6 +55,16 @@ exit status 2
 The speed of import can only be achieved by using `LOAD DATA INFILE LOCAL` with MySQL. So check your config if the option
 has been enabled.
 
+# Installation
+
+To install the command line program, use the following:
+
+Install Go: [http://golang.org/doc/install](http://golang.org/doc/install)
+
+```
+go get github.com/SchumacherFM/OnixParser
+```
+
 # License
 
 General Public License
