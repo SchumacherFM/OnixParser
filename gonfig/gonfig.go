@@ -41,6 +41,7 @@ var (
 )
 
 type AppConfiguration struct {
+	logFile   	*string
 	InputFile   *string
 	outputDir   *string
 	outputFiles map[string]*os.File
@@ -63,6 +64,7 @@ type AppConfiguration struct {
 
 func NewAppConfiguration() *AppConfiguration {
 	a := new(AppConfiguration)
+	a.logFile = flag.String("logfile", "", "Logfile name, if empty direct output")
 	a.InputFile = flag.String("infile", "", "Input file path")
 	a.outputDir = flag.String("outdir", "", "Dir for CSV output file for reading into MySQL, if empty writes to /tmp/")
 	a.SetConnection(
@@ -85,7 +87,7 @@ func NewAppConfiguration() *AppConfiguration {
 	a.Csv.LineEnding = byte(29)
 	a.Csv.Delimiter = byte(30)
 	a.Csv.Enclosure = byte(31)
-	a.MaxPacketSize = 1<<24 - 1 // 16 MB and consider this as a constant ;-)
+	a.MaxPacketSize = 1<<24-1 // 16 MB and consider this as a constant ;-)
 	a.outputFiles = make(map[string]*os.File)
 	return a
 }
@@ -98,15 +100,25 @@ func (a *AppConfiguration) SetConnection(host *string, db *string, user *string,
 	a.maxOpenCon = maxOpenCon
 }
 
+func (a *AppConfiguration) Init(){
+	if "" != *a.logFile {
+		logFilePointer, err := os.OpenFile(*a.logFile, os.O_WRONLY|os.O_CREATE, 0600)
+		if err != nil {
+			panic(err)
+		}
+		log.SetOutput(logFilePointer)
+	}
+}
+
 func (a *AppConfiguration) GetConnection() *sql.DB {
 	var dbConErr error
 
 	if nil == a.dbCon {
 		a.dbCon, dbConErr = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s",
-			url.QueryEscape(*a.dbUser),
-			url.QueryEscape(*a.dbPass),
-			*a.dbHost,
-			*a.DbDb))
+				url.QueryEscape(*a.dbUser),
+				url.QueryEscape(*a.dbPass),
+				*a.dbHost,
+				*a.DbDb))
 		a.HandleErr(dbConErr)
 		a.dbCon.SetMaxIdleConns(5)
 		a.dbCon.SetMaxOpenConns(int(*a.maxOpenCon)) // amount of structs
@@ -123,9 +135,9 @@ func (a *AppConfiguration) GetOutputFileName(sqlTableName string) string {
 
 	path := *a.TablePrefix + sqlTableName + "_" + randString(12) + ".csv"
 	if "" == *a.outputDir {
-		outputFileNameCache[sqlTableName] = "/tmp/" + path
+		outputFileNameCache[sqlTableName] = "/tmp/"+path
 	} else {
-		outputFileNameCache[sqlTableName] = *a.outputDir + path
+		outputFileNameCache[sqlTableName] = *a.outputDir+path
 	}
 	return outputFileNameCache[sqlTableName]
 }
