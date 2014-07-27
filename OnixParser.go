@@ -57,6 +57,18 @@ func initDatabase() {
 		rowCount++
 	}
 	appConfig.Log("Dropped %d existing tables", rowCount)
+
+	// check for SELECT @@max_allowed_packet for reading LOAD DATA INFILE LOCAL
+	rows2, err2 := appConfig.GetConnection().Query("SELECT @@max_allowed_packet")
+	appConfig.HandleErr(err2)
+	defer rows2.Close()
+	if !rows2.Next() {
+		rows2.Close()
+		panic("crashed")
+	}
+	err = rows2.Scan(&appConfig.MaxPacketSize)
+	appConfig.MaxPacketSize = appConfig.MaxPacketSize - 40960 // just in case remove 40kb
+	appConfig.HandleErr(err)
 }
 
 func main() {

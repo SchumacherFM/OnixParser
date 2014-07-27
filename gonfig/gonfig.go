@@ -27,30 +27,34 @@ import (
 	"net/url"
 	"os"
 	"reflect"
+	"strings"
 	"sync"
 )
 
 const (
 	AMOUNT_OF_STRUCTS = 19
- 	MYSQL_MAX__PACKET__SIZE = 1 << 24 - 1 // 8 MB
 )
 
-var outputFileNameCache = make(map[string]string, AMOUNT_OF_STRUCTS)
+var (
+	outputFileNameCache   = make(map[string]string)
+	outputFileNameCounter = make(map[string]int)
+)
 
 type AppConfiguration struct {
 	InputFile   *string
 	outputDir   *string
 	outputFiles map[string]*os.File
 	sync.RWMutex
-	dbHost      *string
-	DbDb        *string
-	dbUser      *string
-	dbPass      *string
-	TablePrefix *string
-	Verbose     *bool
-	dbCon       *sql.DB
-	maxOpenCon  *int
-	Csv         struct {
+	dbHost        *string
+	DbDb          *string
+	dbUser        *string
+	dbPass        *string
+	TablePrefix   *string
+	Verbose       *bool
+	dbCon         *sql.DB
+	maxOpenCon    *int
+	MaxPacketSize int
+	Csv           struct {
 		LineEnding byte
 		Delimiter  byte
 		Enclosure  byte
@@ -77,12 +81,12 @@ func NewAppConfiguration() *AppConfiguration {
 	* 30 Record Separator  CSV_SEPARATOR
 	* 29 Group Separator   EOL
 	* 28 File Separator
-	*/
+	 */
 	a.Csv.LineEnding = byte(29)
 	a.Csv.Delimiter = byte(30)
 	a.Csv.Enclosure = byte(31)
-
-	a.outputFiles = make(map[string]*os.File, AMOUNT_OF_STRUCTS)
+	a.MaxPacketSize = 1<<24 - 1 // 16 MB and consider this as a constant ;-)
+	a.outputFiles = make(map[string]*os.File)
 	return a
 }
 
@@ -99,10 +103,10 @@ func (a *AppConfiguration) GetConnection() *sql.DB {
 
 	if nil == a.dbCon {
 		a.dbCon, dbConErr = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s",
-				url.QueryEscape(*a.dbUser),
-				url.QueryEscape(*a.dbPass),
-				*a.dbHost,
-				*a.DbDb))
+			url.QueryEscape(*a.dbUser),
+			url.QueryEscape(*a.dbPass),
+			*a.dbHost,
+			*a.DbDb))
 		a.HandleErr(dbConErr)
 		a.dbCon.SetMaxIdleConns(5)
 		a.dbCon.SetMaxOpenConns(int(*a.maxOpenCon)) // amount of structs
@@ -119,9 +123,9 @@ func (a *AppConfiguration) GetOutputFileName(sqlTableName string) string {
 
 	path := *a.TablePrefix + sqlTableName + "_" + randString(12) + ".csv"
 	if "" == *a.outputDir {
-		outputFileNameCache[sqlTableName] = "/tmp/"+path
+		outputFileNameCache[sqlTableName] = "/tmp/" + path
 	} else {
-		outputFileNameCache[sqlTableName] = *a.outputDir+path
+		outputFileNameCache[sqlTableName] = *a.outputDir + path
 	}
 	return outputFileNameCache[sqlTableName]
 }
@@ -141,7 +145,7 @@ func (a *AppConfiguration) InitOutputFile(tableName string) {
 }
 
 func (a *AppConfiguration) GetOutputFiles() []string {
-	var filesGreaterZero  []string
+	var filesGreaterZero []string
 	for tableName, filePointer := range a.outputFiles {
 		fps, err := filePointer.Stat()
 		a.HandleErr(err)
@@ -154,7 +158,8 @@ func (a *AppConfiguration) GetOutputFiles() []string {
 
 func (a *AppConfiguration) CloseOutputFiles() {
 	for _, fp := range a.outputFiles {
-		fp.Close()
+		err := fp.Close()
+		a.HandleErr(err)
 	}
 }
 
@@ -170,6 +175,21 @@ func (a *AppConfiguration) GetOutputFilePointer(tableName string) *os.File {
 
 func (a *AppConfiguration) WriteBytes(tableName string, sliceOfBytes []byte) (int, error) {
 	return a.GetOutputFilePointer(tableName).Write(sliceOfBytes)
+}
+
+func (a *AppConfiguration) GetNextTableName(tableName string) string {
+	_, isSet := outputFileNameCounter[tableName]
+	if false == isSet {
+		outputFileNameCounter[tableName] = 0
+	}
+	outputFileNameCounter[tableName]++
+	nextTn := fmt.Sprintf("%s@%05d", tableName, outputFileNameCounter[tableName])
+	a.InitOutputFile(nextTn)
+	return nextTn
+}
+
+func (a *AppConfiguration) RemoveNumbersFromTableName(tableName string) string {
+	return strings.Join(strings.Split(tableName, "@")[0:1], "")
 }
 
 func (a *AppConfiguration) Log(format string, v ...interface{}) {

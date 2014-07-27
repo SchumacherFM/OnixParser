@@ -155,7 +155,7 @@ func ImportCsvIntoMysql() {
 		infileStmt := fmt.Sprintf(
 			infileTpl,
 			fileName,
-			sqlCreator.GetTableName(tableName),
+			sqlCreator.GetTableName(appConfig.RemoveNumbersFromTableName(tableName)),
 			appConfig.Csv.Delimiter,
 			appConfig.Csv.Enclosure,
 			appConfig.Csv.LineEnding,
@@ -177,5 +177,6 @@ func printDuration(timeStart time.Time, currentCount int) {
 		duration,
 		currentCount,
 		runtime.NumGoroutine(),
-		mem)
+		mem,
+	)
 }

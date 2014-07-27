@@ -25,6 +25,36 @@ import (
 	"strings"
 )
 
+var (
+	internalByteCounter     = make(map[string]int)
+	currentWriteToTableName = make(map[string]string)
+)
+
+func getCurrentWriteToTableName(tableName string) string {
+	tn, isSet := currentWriteToTableName[tableName]
+	if false == isSet {
+		return tableName
+	}
+	return tn
+}
+
+// get around of mysql max allowed packet which is hardcoded in the mysql driver at 8MB :-(
+func countByte(tableName string, bytes int) {
+	counted, isSet := internalByteCounter[tableName]
+	if false == isSet {
+		internalByteCounter[tableName] = 0
+	}
+	internalByteCounter[tableName] = bytes + counted
+}
+
+func moreThanMySqlMaxAllowedPacket(tableName string) bool {
+	if internalByteCounter[tableName] > appConfig.MaxPacketSize {
+		internalByteCounter[tableName] = 0
+		return true
+	}
+	return false
+}
+
 func writeOneElementToFile(anyStruct interface{}, args map[int]string) (int, error) {
 	tableName := appConfig.GetNameOfStruct(anyStruct)
 	mapLen := len(args) - 1
@@ -45,8 +75,15 @@ func writeOneElementToFile(anyStruct interface{}, args map[int]string) (int, err
 		}
 	}
 	buffer.WriteByte(appConfig.Csv.LineEnding)
-	return appConfig.WriteBytes(tableName, buffer.Bytes())
+	countByte(tableName, buffer.Len())
 
+	if true == moreThanMySqlMaxAllowedPacket(tableName) {
+		// create new file
+		nextTableName := appConfig.GetNextTableName(tableName)
+		currentWriteToTableName[tableName] = nextTableName
+	}
+	writeToTn := getCurrentWriteToTableName(tableName)
+	return appConfig.WriteBytes(writeToTn, buffer.Bytes())
 }
 
 func (p *Product) Xml2CsvRoot() {
