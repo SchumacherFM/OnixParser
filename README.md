@@ -1,6 +1,6 @@
-# OnixParser Concurrent execution
+# OnixParser
 
-A parser for the ONIX xml file format written in GoLang.
+A parser for the [EDItEUR ONIX xml file format](http://www.editeur.org/83/Overview/) written in GoLang.
 
 My first learning project. Of course it contains many *mistakes* but the binary runs quite nice and at Zookal.com we're
 using it in production. If you find an error or incorrect usage of Go, let me know :-)
