@@ -71,9 +71,11 @@ func main() {
 	initDatabase()
 	onixml.SetAppConfig(appConfig)
 	total, totalErr := onixml.OnixmlDecode()
-
 	appConfig.Log("Total products: %d \n", total)
 	appConfig.Log("Total errors: %d \n", totalErr)
+
+	onixml.ImportCsvIntoMysql()
+
 	appConfig.GetConnection().Close()
 	appConfig.CloseOutputFiles()
 	printDuration(timeStart)

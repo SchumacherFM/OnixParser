@@ -37,13 +37,14 @@ func writeOneElementToFile(anyStruct interface{}, args map[int]string) (int, err
 	}
 	sort.Ints(keys)
 	for _, k := range keys {
-		data := strings.Replace(args[k], *appConfig.Csv.Enclosure, *appConfig.Csv.Escape+*appConfig.Csv.Enclosure, -1)
-		buffer.WriteString(*appConfig.Csv.Enclosure + data + *appConfig.Csv.Enclosure)
+		buffer.WriteByte(appConfig.Csv.Enclosure)
+		buffer.WriteString(args[k])
+		buffer.WriteByte(appConfig.Csv.Enclosure)
 		if k < mapLen {
-			buffer.WriteString(*appConfig.Csv.Delimiter)
+			buffer.WriteByte(appConfig.Csv.Delimiter)
 		}
 	}
-	buffer.WriteString(*appConfig.Csv.LineEnding)
+	buffer.WriteByte(appConfig.Csv.LineEnding)
 	return appConfig.WriteBytes(tableName, buffer.Bytes())
 
 }

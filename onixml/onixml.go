@@ -20,9 +20,11 @@ package onixml
 
 import (
 	"encoding/xml"
+	"fmt"
 	"github.com/SchumacherFM/OnixParser/gonfig"
 	. "github.com/SchumacherFM/OnixParser/onixStructs"
 	"github.com/SchumacherFM/OnixParser/sqlCreator"
+	"github.com/go-sql-driver/mysql"
 	"os"
 	"runtime"
 	"sync"
@@ -102,17 +104,6 @@ func OnixmlDecode() (int, int) {
 	return total, totalErr
 }
 
-func printWaitForGoRoutines() {
-	c := time.Tick(10 * time.Second) // every 10 seconds
-	for now := range c {
-		numRoutines := runtime.NumGoroutine()
-		appConfig.Log("%d child processes remaining ... %v", numRoutines, now)
-		if numRoutines < 10 {
-			break
-		}
-	}
-}
-
 func createTables() {
 
 	// is there a way to do this easier/better?
@@ -152,6 +143,28 @@ func createTable(anyStruct interface{}) {
 	createTable := sqlCreator.GetCreateTableByStruct(anyStruct)
 	_, err := appConfig.GetConnection().Exec(createTable) // instead of .Query because we don't care for result. Exec closes resource
 	appConfig.HandleErr(err)
+}
+
+func ImportCsvIntoMysql() {
+	infileTpl := "LOAD DATA LOCAL INFILE '%s' INTO TABLE `%s` FIELDS TERMINATED BY '%c' ENCLOSED BY '%c' LINES TERMINATED BY '%c'"
+
+	for _, tableName := range appConfig.GetOutputFiles() {
+		fileName := appConfig.GetOutputFileName(tableName)
+		mysql.RegisterLocalFile(fileName)
+
+		infileStmt := fmt.Sprintf(
+			infileTpl,
+			fileName,
+			sqlCreator.GetTableName(tableName),
+			appConfig.Csv.Delimiter,
+			appConfig.Csv.Enclosure,
+			appConfig.Csv.LineEnding,
+		)
+
+		appConfig.Log(infileStmt)
+		_, dbErr := appConfig.GetConnection().Exec(infileStmt)
+		appConfig.Panic(dbErr)
+	}
 }
 
 func printDuration(timeStart time.Time, currentCount int) {

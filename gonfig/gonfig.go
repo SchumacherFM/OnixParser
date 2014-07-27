@@ -32,26 +32,28 @@ import (
 
 const (
 	AMOUNT_OF_STRUCTS = 19
+ 	MYSQL_MAX__PACKET__SIZE = 1 << 24 - 1 // 8 MB
 )
+
+var outputFileNameCache = make(map[string]string, AMOUNT_OF_STRUCTS)
 
 type AppConfiguration struct {
 	InputFile   *string
 	outputDir   *string
 	outputFiles map[string]*os.File
 	sync.RWMutex
-	dbHost        *string
-	DbDb          *string
-	dbUser        *string
-	dbPass        *string
-	TablePrefix   *string
-	Verbose       *bool
-	dbCon         *sql.DB
-	maxOpenCon    *int
-	Csv           struct {
-		LineEnding *string
-		Delimiter  *string
-		Enclosure  *string
-		Escape     *string
+	dbHost      *string
+	DbDb        *string
+	dbUser      *string
+	dbPass      *string
+	TablePrefix *string
+	Verbose     *bool
+	dbCon       *sql.DB
+	maxOpenCon  *int
+	Csv         struct {
+		LineEnding byte
+		Delimiter  byte
+		Enclosure  byte
 	}
 }
 
@@ -69,10 +71,16 @@ func NewAppConfiguration() *AppConfiguration {
 	a.TablePrefix = flag.String("tablePrefix", "gonix_", "Table name prefix")
 	a.Verbose = flag.Bool("v", false, "Increase verbosity")
 
-	a.Csv.LineEnding = flag.String("csv-l", "\n", "CSV Line Ending")
-	a.Csv.Delimiter = flag.String("csv-d", "|", "CSV field delimiter")
-	a.Csv.Enclosure = flag.String("csv-en", "\"", "CSV Set the field enclosure character (one character only).")
-	a.Csv.Escape = flag.String("csv-es", "\\", "CSV Set the escape character (one character only). Defaults as a backslash.")
+	/**
+	* http://en.wikipedia.org/wiki/Unit_separator#Field_separators
+	* 31 Unit Separator    CSV_ENCLOSED_BY
+	* 30 Record Separator  CSV_SEPARATOR
+	* 29 Group Separator   EOL
+	* 28 File Separator
+	*/
+	a.Csv.LineEnding = byte(29)
+	a.Csv.Delimiter = byte(30)
+	a.Csv.Enclosure = byte(31)
 
 	a.outputFiles = make(map[string]*os.File, AMOUNT_OF_STRUCTS)
 	return a
@@ -91,31 +99,38 @@ func (a *AppConfiguration) GetConnection() *sql.DB {
 
 	if nil == a.dbCon {
 		a.dbCon, dbConErr = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s",
-			url.QueryEscape(*a.dbUser),
-			url.QueryEscape(*a.dbPass),
-			*a.dbHost,
-			*a.DbDb))
+				url.QueryEscape(*a.dbUser),
+				url.QueryEscape(*a.dbPass),
+				*a.dbHost,
+				*a.DbDb))
 		a.HandleErr(dbConErr)
 		a.dbCon.SetMaxIdleConns(5)
 		a.dbCon.SetMaxOpenConns(int(*a.maxOpenCon)) // amount of structs
-		// why is defer close not working here?
 	}
 	return a.dbCon
 }
 
-func (a *AppConfiguration) getOutputFileName(sqlTableName string) string {
+func (a *AppConfiguration) GetOutputFileName(sqlTableName string) string {
+
+	_, isSet := outputFileNameCache[sqlTableName]
+	if true == isSet {
+		return outputFileNameCache[sqlTableName]
+	}
+
 	path := *a.TablePrefix + sqlTableName + "_" + randString(12) + ".csv"
 	if "" == *a.outputDir {
-		return "/tmp/" + path
+		outputFileNameCache[sqlTableName] = "/tmp/"+path
+	} else {
+		outputFileNameCache[sqlTableName] = *a.outputDir+path
 	}
-	return *a.outputDir + path
+	return outputFileNameCache[sqlTableName]
 }
 
 func (a *AppConfiguration) InitOutputFile(tableName string) {
 
-	fileName := a.getOutputFileName(tableName)
+	fileName := a.GetOutputFileName(tableName)
 
-	filePointer, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0600)
+	filePointer, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		a.HandleErr(err)
 		os.Exit(1)
@@ -125,14 +140,25 @@ func (a *AppConfiguration) InitOutputFile(tableName string) {
 	a.outputFiles[tableName] = filePointer
 }
 
+func (a *AppConfiguration) GetOutputFiles() []string {
+	var filesGreaterZero  []string
+	for tableName, filePointer := range a.outputFiles {
+		fps, err := filePointer.Stat()
+		a.HandleErr(err)
+		if fps.Size() > 0 {
+			filesGreaterZero = append(filesGreaterZero, tableName)
+		}
+	}
+	return filesGreaterZero
+}
+
 func (a *AppConfiguration) CloseOutputFiles() {
-	for tn, fp := range a.outputFiles {
+	for _, fp := range a.outputFiles {
 		fp.Close()
-		a.Log("Closed file: %s\n", tn)
 	}
 }
 
-func (a *AppConfiguration) getOutputFilePointer(tableName string) *os.File {
+func (a *AppConfiguration) GetOutputFilePointer(tableName string) *os.File {
 	a.RLock()
 	defer a.RUnlock()
 	fp, ok := a.outputFiles[tableName]
@@ -142,8 +168,8 @@ func (a *AppConfiguration) getOutputFilePointer(tableName string) *os.File {
 	return fp
 }
 
-func (a *AppConfiguration) WriteBytes(tableName string, byteString []byte) (int, error) {
-	return a.getOutputFilePointer(tableName).Write(byteString)
+func (a *AppConfiguration) WriteBytes(tableName string, sliceOfBytes []byte) (int, error) {
+	return a.GetOutputFilePointer(tableName).Write(sliceOfBytes)
 }
 
 func (a *AppConfiguration) Log(format string, v ...interface{}) {
@@ -155,6 +181,12 @@ func (a *AppConfiguration) Log(format string, v ...interface{}) {
 func (a *AppConfiguration) HandleErr(theErr error) {
 	if nil != theErr {
 		log.Fatal(theErr.Error())
+	}
+}
+
+func (a *AppConfiguration) Panic(theErr error) {
+	if nil != theErr {
+		panic(theErr)
 	}
 }
 
@@ -173,4 +205,3 @@ func randString(n int) string {
 	}
 	return string(bytes)
 }
-

@@ -51,10 +51,14 @@ func isValidTableColumn(elementType string) bool {
 	return elementType2 == "int" || elementType2 == "str" || elementType2 == "flo"
 }
 
+func GetTableName(tableName string) string {
+	return *tablePrefix + strings.ToLower(tableName)
+}
+
 func getTableName(anyStruct interface{}) (string, reflect.Value) {
 	s := reflect.ValueOf(anyStruct).Elem()
 	typeOfAnyStruct := s.Type()
-	return *tablePrefix + strings.ToLower(typeOfAnyStruct.Name()), s
+	return GetTableName(typeOfAnyStruct.Name()), s
 }
 
 // @todo use Cachekey to speed up and avoid reflection
