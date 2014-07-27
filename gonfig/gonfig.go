@@ -169,9 +169,10 @@ func (a *AppConfiguration) GetOutputFiles() []string {
 }
 
 func (a *AppConfiguration) CloseOutputFiles() {
-	for _, fp := range a.outputFiles {
+	for tableName, fp := range a.outputFiles {
 		err := fp.Close()
 		a.HandleErr(err)
+		os.Remove(a.GetOutputFileName(tableName))
 	}
 }
 
