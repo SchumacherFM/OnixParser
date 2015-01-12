@@ -85,7 +85,7 @@ func OnixmlDecode() (int, int) {
 				// variable prod which is a Product (se above)
 				decErr := decoder.DecodeElement(&prod, &se)
 				if nil != decErr {
-					appConfig.Log("Decode Error, Type mismatch: %v\n%v\n", prod, decErr)
+					appConfig.Log("Decode Error, Type mismatch: %#v\n\n%s\n\n", prod, decErr)
 					totalErr++
 				}
 				wg.Add(1)
