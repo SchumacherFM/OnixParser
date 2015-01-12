@@ -19,8 +19,9 @@
 package onixStructs
 
 import (
-	"github.com/SchumacherFM/OnixParser/gonfig"
 	"sync"
+
+	"github.com/SchumacherFM/OnixParser/gonfig"
 )
 
 var (

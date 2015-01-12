@@ -1,11 +1,12 @@
-GOFMT=gofmt -s
-
 GOFILES=$(wildcard *.go **/*.go)
 
 OUTDIR=./xmlFiles/
 
 fmt:
-	${GOFMT} -w ${GOFILES}
+	gofmt -s -w ${GOFILES}
+
+imp:
+	goimports -w ${GOFILES}
 
 run1:
 	rm -f ${OUTDIR}/gonix_*
