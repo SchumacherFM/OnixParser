@@ -131,12 +131,8 @@ type (
 		AgentRole              int    `xml:"MarketRepresentation>AgentRole" sql:"int(10) NOT NULL DEFAULT 0"`
 		MarketCountry          string `xml:"MarketRepresentation>MarketCountry" sql:"varchar(4) NULL"`
 		MarketPublishingStatus int    `xml:"MarketRepresentation>MarketPublishingStatus" sql:"int(10) NOT NULL DEFAULT 0"`
-		MarketDate             []MarketDate
-	}
-
-	MarketDate struct {
-		MarketDateRole int    `xml:"MarketDateRole" sql:"int(5) NOT NULL DEFAULT 0"`
-		Date           string `xml:"Date" sql:"varchar(255) NOT NULL"`
+		MarketDateRole         int    `xml:"MarketRepresentation>MarketDate>MarketDateRole" sql:"int(5) NOT NULL DEFAULT 0"`
+		MarketDate             string `xml:"MarketRepresentation>MarketDate>Date" sql:"varchar(255) NOT NULL"`
 	}
 
 	Product struct {
