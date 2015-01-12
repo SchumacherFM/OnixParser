@@ -9,7 +9,8 @@ Inspired for learning by [http://blog.davidsingleton.org/parsing-huge-xml-files-
 
 # XML Data
 
-[http://www.editeur.org/onix/2.1/02/reference/onix-international.dtd](http://www.editeur.org/onix/2.1/02/reference/onix-international.dtd)
+- [http://www.editeur.org/onix/2.1/02/reference/onix-international.dtd](http://www.editeur.org/onix/2.1/02/reference/onix-international.dtd)
+- [http://www.editeur.org/onix/2.1/03/reference/onix-international.dtd](http://www.editeur.org/onix/2.1/03/reference/onix-international.dtd)
 
 ### Test data Onix Data Feed
 
@@ -64,6 +65,10 @@ Install Go: [http://golang.org/doc/install](http://golang.org/doc/install)
 ```
 go get github.com/SchumacherFM/OnixParser
 ```
+
+# Todo
+
+Rewrite the whole crap using channels, tests and other stuff. This version works no so far.
 
 # License
 
