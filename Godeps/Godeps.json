@@ -1,0 +1,18 @@
+{
+	"ImportPath": "github.com/SchumacherFM/OnixParser",
+	"GoVersion": "go1.4",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/go-sql-driver/mysql",
+			"Comment": "v1.2-31-g04cf947",
+			"Rev": "04cf9477603ac3191c3712cb0a03d1719d83759f"
+		},
+		{
+			"ImportPath": "github.com/stretchr/testify/assert",
+			"Rev": "2160c81a963bc827f650a9d420263d05d35bb97e"
+		}
+	]
+}

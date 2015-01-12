@@ -19,10 +19,10 @@
 package gonfig
 
 import (
-	"testing"
-	"github.com/stretchr/testify/assert"
-	"os"
+	"github.com/SchumacherFM/OnixParser/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 	"io/ioutil"
+	"os"
+	"testing"
 )
 
 var appConfig = NewAppConfiguration()

@@ -1,0 +1,10 @@
+{
+	"AppName": "onixparser",
+	"Arch": "amd64 386",
+	"Os": "darwin linux windows",
+	"PackageVersion": "0.2.0",
+	"ConfigVersion": "0.9",
+	"PrereleaseInfo" : "",
+	"BranchName" : "",
+	"ArtifactsDest":"./build/"
+}
