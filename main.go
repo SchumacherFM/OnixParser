@@ -67,7 +67,7 @@ func initDatabase() {
 		panic("crashed")
 	}
 	err = rows2.Scan(&appConfig.MaxPacketSize)
-	appConfig.MaxPacketSize = appConfig.MaxPacketSize - 40960 // just in case remove 40kb
+	appConfig.MaxPacketSize = appConfig.MaxPacketSize - 40960*4 // just in case remove 160kb
 	appConfig.HandleErr(err)
 }
 

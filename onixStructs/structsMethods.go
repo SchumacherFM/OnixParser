@@ -97,7 +97,7 @@ func (p *Product) Xml2CsvRoot() {
 		6:  strings.Replace(p.NumberOfPages, ",", "", -1),
 		7:  p.IllustrationsNote,
 		8:  p.BICMainSubject,
-		9:  strconv.Itoa(p.AudienceCode),
+		9:  strings.TrimLeft(strings.TrimSpace(p.AudienceCode), "0"),
 		10: strconv.Itoa(p.PublishingStatus),
 		11: p.PublicationDate,
 		12: p.YearFirstPublished,

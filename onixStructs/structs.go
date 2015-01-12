@@ -22,6 +22,7 @@ package onixStructs
 /*
 	not all types are matched
 	http://www.editeur.org/onix/2.1/02/reference/onix-international.dtd
+	http://www.editeur.org/onix/2.1/03/reference/onix-international.dtd
 */
 type (
 	ProductIdentifier struct {
@@ -130,6 +131,12 @@ type (
 		AgentRole              int    `xml:"MarketRepresentation>AgentRole" sql:"int(10) NOT NULL DEFAULT 0"`
 		MarketCountry          string `xml:"MarketRepresentation>MarketCountry" sql:"varchar(4) NULL"`
 		MarketPublishingStatus int    `xml:"MarketRepresentation>MarketPublishingStatus" sql:"int(10) NOT NULL DEFAULT 0"`
+		MarketDate             []MarketDate
+	}
+
+	MarketDate struct {
+		MarketDateRole int    `xml:"MarketDateRole" sql:"int(5) NOT NULL DEFAULT 0"`
+		Date           string `xml:"Date" sql:"varchar(255) NOT NULL"`
 	}
 
 	Product struct {
@@ -149,7 +156,7 @@ type (
 		IllustrationsNote string `xml:"IllustrationsNote" sql:"varchar(255) NULL"`
 		BICMainSubject    string `xml:"BICMainSubject" sql:"varchar(20) NULL"`
 		OtherText         []OtherText
-		AudienceCode      int `xml:"AudienceCode" sql:"int(10) NOT NULL DEFAULT 0"`
+		AudienceCode      string `xml:"AudienceCode" sql:"int(10) NOT NULL DEFAULT 0"`
 		MediaFile
 		Imprint
 		Publisher
