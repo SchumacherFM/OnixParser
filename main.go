@@ -1,3 +1,5 @@
+//go:generate godep save -r ./...
+
 /*
 	Copyright (C) 2014  Cyrill AT Schumacher dot fm
 
