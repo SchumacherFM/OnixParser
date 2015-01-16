@@ -56,6 +56,8 @@ exit status 2
 The speed of import can only be achieved by using `LOAD DATA INFILE LOCAL` with MySQL. So check your config if the option
 has been enabled.
 
+**Known problems**: When the DB host name is `localhost` that gets translated to 127.0.0.1 for IPv4 or ::1 for IPv6. Make sure you have in table `mysql.user` and `mysql.db` the additional entry for that IP address.
+
 # Installation
 
 To install the command line program, use the following:
