@@ -10,7 +10,7 @@ imp:
 
 run1:
 	rm -f ${OUTDIR}/gonix_*
-	go run main.go -infile xmlFiles/pearson-physical-005.xml -db test2 -v -moc 30 -outdir ${OUTDIR}
+	go run main.go -infile xmlFiles/pearson-physical-005.xml -db test -tablePrefix gonix_pearson_ -v -moc 30 -outdir ${OUTDIR}
 
 run2:
 	rm -f ${OUTDIR}/gonix_*
