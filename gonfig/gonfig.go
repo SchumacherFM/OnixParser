@@ -52,6 +52,7 @@ type AppConfiguration struct {
 	dbPass        *string
 	TablePrefix   *string
 	Verbose       *bool
+	NoExitCode    bool
 	dbCon         *sql.DB
 	maxOpenCon    *int
 	MaxPacketSize int
@@ -76,7 +77,7 @@ func NewAppConfiguration() *AppConfiguration {
 	)
 	a.TablePrefix = flag.String("tablePrefix", "gonix_", "Table name prefix")
 	a.Verbose = flag.Bool("v", false, "Increase verbosity")
-
+	flag.BoolVar(&a.NoExitCode, "exitCode", false, "If set no output except an exit code will be provided")
 	/**
 	* http://en.wikipedia.org/wiki/Unit_separator#Field_separators
 	* 31 Unit Separator    CSV_ENCLOSED_BY

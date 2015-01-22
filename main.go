@@ -78,11 +78,13 @@ func main() {
 	if "" == os.Getenv("GOMAXPROCS") {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
-
-	fmt.Println("OnixParser Copyright (C) 2014 Cyrill AT Schumacher dot fm")
-	fmt.Println("This program comes with ABSOLUTELY NO WARRANTY; License: http://www.gnu.org/copyleft/gpl.html")
 	flag.Parse()
+	appConfig.NoExitCode = appConfig.NoExitCode == false
 	appConfig.Init()
+	if appConfig.NoExitCode {
+		fmt.Println("OnixParser Copyright (C) 2014 Cyrill AT Schumacher dot fm")
+		fmt.Println("This program comes with ABSOLUTELY NO WARRANTY; License: http://www.gnu.org/copyleft/gpl.html")
+	}
 	initDatabase()
 	onixml.SetAppConfig(appConfig)
 	total, totalErr := onixml.OnixmlDecode()
