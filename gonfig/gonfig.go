@@ -54,7 +54,7 @@ type AppConfiguration struct {
 	Verbose       *bool
 	NoExitCode    bool
 	dbCon         *sql.DB
-	maxOpenCon    *int
+	maxOpenCon    int
 	MaxPacketSize int
 	Csv           struct {
 		LineEnding byte
@@ -73,7 +73,6 @@ func NewAppConfiguration() *AppConfiguration {
 		flag.String("db", "test", "MySQL db name"),
 		flag.String("user", "test", "MySQL user name"),
 		flag.String("pass", "test", "MySQL password"),
-		flag.Int("moc", 20, "Max MySQL open connections"),
 	)
 	a.TablePrefix = flag.String("tablePrefix", "gonix_", "Table name prefix")
 	a.Verbose = flag.Bool("v", false, "Increase verbosity")
@@ -93,12 +92,12 @@ func NewAppConfiguration() *AppConfiguration {
 	return a
 }
 
-func (a *AppConfiguration) SetConnection(host *string, db *string, user *string, pass *string, maxOpenCon *int) {
+func (a *AppConfiguration) SetConnection(host *string, db *string, user *string, pass *string) {
 	a.dbHost = host
 	a.DbDb = db
 	a.dbUser = user
 	a.dbPass = pass
-	a.maxOpenCon = maxOpenCon
+	a.maxOpenCon = 30
 }
 
 func (a *AppConfiguration) Init() {
@@ -123,7 +122,7 @@ func (a *AppConfiguration) GetConnection() *sql.DB {
 			*a.DbDb))
 		a.HandleErr(dbConErr)
 		a.dbCon.SetMaxIdleConns(5)
-		a.dbCon.SetMaxOpenConns(int(*a.maxOpenCon)) // amount of structs
+		a.dbCon.SetMaxOpenConns(a.maxOpenCon) // amount of structs
 	}
 	return a.dbCon
 }
