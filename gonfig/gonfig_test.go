@@ -46,12 +46,10 @@ func TestSetConnection(t *testing.T) {
 	db := "db"
 	user := "user"
 	pass := "pass"
-	maxCon := 4711
-	appConfig.SetConnection(&host, &db, &user, &pass, &maxCon)
+	appConfig.SetConnection(&host, &db, &user, &pass)
 	assert.Exactly(t, appConfig.dbHost, &host, "Host should be equal")
 	assert.Exactly(t, appConfig.dbUser, &user, "User should be equal")
 	assert.Exactly(t, appConfig.dbPass, &pass, "Pass should be equal")
-	assert.Exactly(t, appConfig.maxOpenCon, &maxCon, "Pass should be equal")
 }
 
 func TestLoggingToFile(t *testing.T) {
