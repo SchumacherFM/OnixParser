@@ -21,7 +21,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"net/url"
 	"os"
@@ -78,9 +77,8 @@ func main() {
 	if "" == os.Getenv("GOMAXPROCS") {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
-	flag.Parse()
-	appConfig.NoExitCode = appConfig.NoExitCode == false
 	appConfig.Init()
+	appConfig.NoExitCode = appConfig.NoExitCode == false
 	if appConfig.NoExitCode {
 		fmt.Println("OnixParser Copyright (C) 2014 Cyrill AT Schumacher dot fm")
 		fmt.Println("This program comes with ABSOLUTELY NO WARRANTY; License: http://www.gnu.org/copyleft/gpl.html")

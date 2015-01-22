@@ -102,6 +102,7 @@ func (a *AppConfiguration) SetConnection(host *string, db *string, user *string,
 }
 
 func (a *AppConfiguration) Init() {
+	flag.Parse()
 	if "" != *a.logFile {
 		logFilePointer, err := os.OpenFile(*a.logFile, os.O_WRONLY|os.O_CREATE, 0600)
 		if err != nil {
