@@ -21,15 +21,15 @@
 package main
 
 import (
-	"./onixml"
 	"fmt"
 	"net/url"
 	"os"
 	"runtime"
 	"time"
-	_ "github.com/SchumacherFM/OnixParser/Godeps/_workspace/src/github.com/go-sql-driver/mysql"
-	"github.com/SchumacherFM/OnixParser/gonfig"
-	"github.com/SchumacherFM/OnixParser/sqlCreator"
+	_ "github.com/Zookal/OnixParser/Godeps/_workspace/src/github.com/go-sql-driver/mysql"
+	"github.com/Zookal/OnixParser/gonfig"
+	"github.com/Zookal/OnixParser/onixml"
+	"github.com/Zookal/OnixParser/sqlCreator"
 )
 
 var appConfig = gonfig.NewAppConfiguration()
