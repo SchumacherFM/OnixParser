@@ -21,16 +21,14 @@
 package main
 
 import (
+	"./onixml"
 	"fmt"
 	"net/url"
 	"os"
 	"runtime"
 	"time"
-
 	_ "github.com/SchumacherFM/OnixParser/Godeps/_workspace/src/github.com/go-sql-driver/mysql"
-
 	"github.com/SchumacherFM/OnixParser/gonfig"
-	"github.com/SchumacherFM/OnixParser/onixml"
 	"github.com/SchumacherFM/OnixParser/sqlCreator"
 )
 

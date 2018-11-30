@@ -19,6 +19,7 @@
 package onixml
 
 import (
+	. "../onixStructs"
 	"encoding/xml"
 	"fmt"
 	"os"
@@ -28,7 +29,6 @@ import (
 
 	"github.com/SchumacherFM/OnixParser/Godeps/_workspace/src/github.com/go-sql-driver/mysql"
 	"github.com/SchumacherFM/OnixParser/gonfig"
-	. "github.com/SchumacherFM/OnixParser/onixStructs"
 	"github.com/SchumacherFM/OnixParser/sqlCreator"
 )
 
@@ -65,6 +65,7 @@ func OnixmlDecode() (int, int) {
 	var wg sync.WaitGroup
 	var inElement string
 	timeStart := time.Now()
+	var header Header
 	for {
 		// Read tokens from the XML document in a stream.
 		t, dtErr := decoder.Token()
@@ -72,12 +73,18 @@ func OnixmlDecode() (int, int) {
 			break
 		}
 		appConfig.HandleErr(dtErr)
-
 		// Inspect the type of the token just read.
 		switch se := t.(type) {
 		case xml.StartElement:
 			// If we just read a StartElement token
 			inElement = se.Name.Local
+			if inElement == "Header" {
+				decErr := decoder.DecodeElement(&header, &se)
+				if nil != decErr {
+					appConfig.Log("Header Decode Error, Type mismatch: %#v\n\n%s\n\n", header, decErr)
+					totalErr++
+				}
+			}
 			// ...and its name is "Product"
 			if inElement == "Product" {
 				var prod Product
@@ -89,8 +96,9 @@ func OnixmlDecode() (int, int) {
 					totalErr++
 				}
 				wg.Add(1)
+
 				// go here does not really make sense ... but for learning it is ok
-				go ParseXmlElementsConcurrent(&prod, appConfig, &wg)
+				go ParseXmlElementsConcurrent(&prod, appConfig, &wg, header)
 
 				if true == *appConfig.Verbose && total > 0 && 0 == total%1000 {
 					printDuration(timeStart, total)
