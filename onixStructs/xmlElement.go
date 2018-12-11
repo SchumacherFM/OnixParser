@@ -21,7 +21,7 @@ package onixStructs
 import (
 	"sync"
 
-	"github.com/Zookal/OnixParser/gonfig"
+	"github.com/SchumacherFM/OnixParser/gonfig"
 )
 
 var (

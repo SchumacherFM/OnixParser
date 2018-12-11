@@ -23,7 +23,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/Zookal/OnixParser/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/SchumacherFM/OnixParser/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 )
 
 var appConfig = NewAppConfiguration()
