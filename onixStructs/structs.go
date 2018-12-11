@@ -25,6 +25,9 @@ package onixStructs
 	http://www.editeur.org/onix/2.1/03/reference/onix-international.dtd
 */
 type (
+	Header struct {
+		DefaultPriceTypeCode int `xml:"DefaultPriceTypeCode" sql:"int(10)"`
+	}
 	ProductIdentifier struct {
 		ProductIDType int    `xml:"ProductIDType" sql:"bigint(14)"`
 		IDValue       string `xml:"IDValue" sql:"varchar(255) NULL"`

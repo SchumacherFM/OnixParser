@@ -21,7 +21,7 @@ package onixStructs
 import (
 	"sync"
 
-	"github.com/SchumacherFM/OnixParser/gonfig"
+	"github.com/Zookal/OnixParser/gonfig"
 )
 
 var (
@@ -29,7 +29,7 @@ var (
 	theSyncer = new(sync.Mutex)
 )
 
-func ParseXmlElementsConcurrent(prod *Product, appConfigArg *gonfig.AppConfiguration, wg *sync.WaitGroup) {
+func ParseXmlElementsConcurrent(prod *Product, appConfigArg *gonfig.AppConfiguration, wg *sync.WaitGroup, header Header) {
 	// as we are in another thread set the dbCon new
 	appConfig = appConfigArg
 	defer wg.Done()
@@ -61,7 +61,7 @@ func ParseXmlElementsConcurrent(prod *Product, appConfigArg *gonfig.AppConfigura
 	}
 	if len(prod.SupplyDetail) > 0 {
 		for _, prodSupplyDetail := range prod.SupplyDetail {
-			prodSupplyDetail.Xml2Csv(prod.RecordReference)
+			prodSupplyDetail.Xml2Csv(prod.RecordReference, header)
 		}
 	}
 

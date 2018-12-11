@@ -181,7 +181,7 @@ func (e *Extent) Xml2Csv(id string) {
 		appConfig.HandleErr(writeErr)
 	}
 }
-func (s *SupplyDetail) Xml2Csv(id string) {
+func (s *SupplyDetail) Xml2Csv(id string, header Header) {
 	if "" != s.SupplierName {
 		_, writeErr := writeOneElementToFile(s, map[int]string{
 			0: id,
@@ -195,10 +195,12 @@ func (s *SupplyDetail) Xml2Csv(id string) {
 			8: strconv.Itoa(s.PackQuantity),
 		})
 		appConfig.HandleErr(writeErr)
-
 		if len(s.Price) > 0 {
 			for _, sPrice := range s.Price {
 				if sPrice.PriceTypeCode > 0 {
+					sPrice.Xml2Csv(id, s.SupplierName)
+				} else if header.DefaultPriceTypeCode > 0 {
+					sPrice.PriceTypeCode = header.DefaultPriceTypeCode
 					sPrice.Xml2Csv(id, s.SupplierName)
 				}
 			}
